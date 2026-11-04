@@ -1,0 +1,48 @@
+name: ios
+on:
+  push:
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  pull_request:
+    paths: ["ios/**", ".github/workflows/ios.yml"]
+  workflow_dispatch:
+jobs:
+  escortkit:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: 选 Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+      - name: EscortKit 单元测试
+        working-directory: ios/Packages/EscortKit
+        run: swift test
+  app:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: 选 Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app || sudo xcode-select -s "$(ls -d /Applications/Xcode_16*.app | sort -V | tail -1)"
+      - run: brew install xcodegen
+      - name: 生成工程
+        working-directory: ios
+        run: xcodegen generate
+      - name: 编译 iPhone App（含小组件和手表）
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project NightEscort.xcodeproj -scheme NightEscort \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tee build-ios.log | grep -E "error:|warning: unre|BUILD" || true
+          grep -q "BUILD SUCCEEDED" build-ios.log
+      - name: 编译手表 App
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build -project NightEscort.xcodeproj -scheme NightEscortWatch \
+            -destination 'generic/platform=watchOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tee build-watch.log | grep -E "error:|BUILD" || true
+          grep -q "BUILD SUCCEEDED" build-watch.log
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: ios/build-*.log

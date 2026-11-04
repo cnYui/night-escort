@@ -1,0 +1,9 @@
+NightEscort.xcodeproj/
+NightEscort/Info.plist
+NightEscort/NightEscort.entitlements
+NightEscortWidgets/Info.plist
+NightEscortWatch/Info.plist
+DerivedData/
+.build/
+.swiftpm/
+xcuserdata/
