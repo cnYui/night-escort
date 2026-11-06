@@ -80,7 +80,7 @@ public enum JSON {
     }
 }
 
-/// 夜归护航后端客户端。访问令牌过期时自动用刷新令牌换一次。
+/// 到家没后端客户端。访问令牌过期时自动用刷新令牌换一次。
 public final class APIClient: @unchecked Sendable {
     public let baseURL: URL
     public let tokens: TokenStore
@@ -339,6 +339,12 @@ public final class APIClient: @unchecked Sendable {
         return try await request("POST", "/v1/escorts/\(escortId)/checkin", body: B(action: action, channel: channel))
     }
 
+    /// 一键求救：正在护航就立刻升级；没在护航就用全部担保人开一次护航并立刻响铃
+    public func sos(from: String) async throws -> Escort {
+        struct B: Encodable { let from: String }
+        return try await request("POST", "/v1/sos", body: B(from: from))
+    }
+
     public func endEscort(escortId: String, reason: String = "manual") async throws -> Escort {
         struct B: Encodable { let reason: String }
         return try await request("POST", "/v1/escorts/\(escortId)/end", body: B(reason: reason))
@@ -375,6 +381,11 @@ public final class APIClient: @unchecked Sendable {
     public func incident(id: String) async throws -> IncidentView { try await request("GET", "/v1/incidents/\(id)") }
     public func markSeen(incidentId: String) async throws -> IncidentView { try await request("POST", "/v1/incidents/\(incidentId)/seen", body: Empty()) }
     public func snooze(incidentId: String) async throws -> SnoozeResult { try await request("POST", "/v1/incidents/\(incidentId)/snooze", body: Empty()) }
+    /// 担保人点了“打电话给她”：后端记一笔
+    public func markCalled(incidentId: String) async throws {
+        struct R: Decodable { let ok: Bool }
+        let _: R = try await request("POST", "/v1/incidents/\(incidentId)/called", body: Empty())
+    }
     public func markUnreachable(incidentId: String) async throws -> IncidentView { try await request("POST", "/v1/incidents/\(incidentId)/unreachable", body: Empty()) }
 
     public func confirmSafe(incidentId: String, via: ConfirmVia, followup: ConfirmFollowup) async throws -> ConfirmResult {

@@ -27,18 +27,40 @@ interface IncidentRow {
   next_ring_at: Date | null;
   ring_round: number;
   closed_at: Date | null;
+  kind: IncidentKind;
 }
 
-export async function openIncidentTx(d: Deps, c: Tx, e: EscortRow, now: Date): Promise<After[]> {
+export type IncidentKind = 'missed' | 'sos';
+
+export async function openIncidentTx(d: Deps, c: Tx, e: EscortRow, now: Date, kind: IncidentKind = 'missed'): Promise<After[]> {
   const last = await one<{ id: number }>(c, `SELECT id FROM location_points WHERE escort_id = $1 ORDER BY recorded_at DESC LIMIT 1`, [e.id]);
   const inc = await one<{ id: string }>(
     c,
-    `INSERT INTO incidents (escort_id, opened_at, last_point_id, next_ring_at, trail_visible_until)
-     VALUES ($1, $2, $3, $2, $4)
+    `INSERT INTO incidents (escort_id, opened_at, last_point_id, next_ring_at, trail_visible_until, kind)
+     VALUES ($1, $2, $3, $2, $4, $5)
      ON CONFLICT (escort_id) WHERE closed_at IS NULL DO NOTHING RETURNING id`,
-    [e.id, now, last?.id ?? null, addMs(now, INCIDENT_TRAIL_MAX_MS)],
+    [e.id, now, last?.id ?? null, addMs(now, INCIDENT_TRAIL_MAX_MS), kind],
   );
-  if (!inc) return []; // 已经开过（幂等）
+  if (!inc) {
+    if (kind !== 'sos') return []; // 已经开过（幂等）
+    // 漏签到事件已经开着，她又按了求救：升级成求救，清掉所有人的静音，立刻重响
+    const open = await one<{ id: string }>(
+      c,
+      `UPDATE incidents SET kind = 'sos', contacting_by = NULL, contacting_since = NULL, next_ring_at = $2
+        WHERE escort_id = $1 AND closed_at IS NULL RETURNING id`,
+      [e.id, now],
+    );
+    if (!open) return [];
+    await c.query(`UPDATE incident_guardians SET snoozed_until = NULL, last_rung_at = NULL WHERE incident_id = $1`, [open.id]);
+    const gs = await activeGuardians(c, e.id);
+    return [
+      async () => {
+        d.bus.emit({ type: 'incident_changed', ownerId: e.owner_id, escortId: e.id, incidentId: open.id, guardianIds: gs.map((g) => g.guardian_id) });
+        await ringIncident(d, open.id);
+        await liveActivityFor(d, e.id);
+      },
+    ];
+  }
   const guardians = await activeGuardians(c, e.id);
   for (const g of guardians) {
     await c.query(`INSERT INTO incident_guardians (incident_id, guardian_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`, [inc.id, g.guardian_id]);
@@ -88,15 +110,16 @@ export async function ringIncident(d: Deps, incidentId: string): Promise<void> {
     [plan.esc.id],
   );
   const contactingName = plan.contacting ? (await userBrief(d.db, plan.contacting)).display_name : null;
+  const sos = plan.inc.kind === 'sos';
   const missedMin = Math.max(10, Math.round((now.getTime() - plan.esc.cycle_due_at.getTime()) / 60000));
-  const parts = [contactingName ? `${contactingName}正在联系她` : '请尝试联系她'];
+  const parts = [contactingName ? `${contactingName}正在联系她` : sos ? '请马上打电话给她' : '请尝试联系她'];
   if (last) parts.push(`最后位置 ${localHHmm(last.recorded_at, owner.time_zone)}${last.battery_pct !== null ? `，电量 ${last.battery_pct}%` : ''}`);
   if (plan.esc.near_home_at) parts.push(`${localHHmm(plan.esc.near_home_at, owner.time_zone)} 已到家附近`);
   for (const gid of plan.plan.ring) {
     await notify(d, [gid], {
       kind: 'incident_ring',
       key: `incident_ring:${plan.inc.id}:${plan.round}`,
-      title: `${owner.display_name} ${missedMin} 分钟没响应`,
+      title: sos ? `${owner.display_name}发起了求救` : `${owner.display_name} ${missedMin} 分钟没响应`,
       body: parts.join('。'),
       level: 'alarm',
       category: 'INCIDENT',
@@ -104,7 +127,7 @@ export async function ringIncident(d: Deps, incidentId: string): Promise<void> {
       incidentId: plan.inc.id,
       round: plan.round,
       threadId: `owner:${plan.esc.owner_id}`,
-      data: { owner_id: plan.esc.owner_id, contacting_name: contactingName },
+      data: { owner_id: plan.esc.owner_id, contacting_name: contactingName, incident_kind: plan.inc.kind },
     });
   }
 }
@@ -273,6 +296,18 @@ export async function guardianIncidentView(d: Deps, guardianId: string, incident
     [incidentId],
   );
   const mine = await one<{ snoozed_until: Date | null }>(d.db, `SELECT snoozed_until FROM incident_guardians WHERE incident_id = $1 AND guardian_id = $2`, [incidentId, guardianId]);
+  // 只在事件没结束时给担保人看她的手机号（平时号码对谁都不可见）
+  let ownerPhone: string | null = null;
+  if (!inc.closed_at) {
+    const u = await one<{ phone_enc: string }>(d.db, `SELECT phone_enc FROM users WHERE id = $1 AND deleted_at IS NULL`, [inc.owner_id]);
+    if (u) {
+      try {
+        ownerPhone = d.phone.decrypt(u.phone_enc);
+      } catch {
+        ownerPhone = null;
+      }
+    }
+  }
   return {
     id: inc.id,
     escort_id: inc.escort_id,
@@ -288,7 +323,20 @@ export async function guardianIncidentView(d: Deps, guardianId: string, incident
     my_tier: member.tier,
     can_pause_or_end: member.tier === 'standing',
     snoozed_until: mine?.snoozed_until ?? null,
+    kind: inc.kind,
+    owner_phone: ownerPhone,
   };
+}
+
+/** 担保人点了“打电话给她”：记一笔，方便事后看谁做了什么。 */
+export async function markCalled(d: Deps, guardianId: string, incidentId: string) {
+  const now = d.clock.now();
+  await tx(d.db, async (c) => {
+    const { inc } = await loadForGuardian(c, incidentId, guardianId);
+    if (inc.closed_at) return;
+    await c.query(`INSERT INTO incident_actions (incident_id, actor_id, action, via, created_at) VALUES ($1, $2, 'called', 'phone', $3)`, [inc.id, guardianId, now]);
+  });
+  return { ok: true };
 }
 
 export function assertVia(v: string): Via {

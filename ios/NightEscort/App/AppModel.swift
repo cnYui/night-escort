@@ -24,6 +24,8 @@ final class AppModel: ObservableObject {
     /// 到家提醒：“检测到你已经到家，安全到家了吗？”
     @Published var homePrompt: String?
     @Published var toast: String?
+    /// 求救没发出去时的说明（弹框里附“拨打 110”）
+    @Published var sosError: String?
 
     private var pushToken: String?
     private var refreshTask: Task<Void, Never>?
@@ -245,5 +247,20 @@ final class AppModel: ObservableObject {
 
     func started(_ e: Escort) {
         applyEscort(e)
+    }
+
+    /// 一键求救：立刻叫醒所有担保人；没在护航也能用
+    func sos() async {
+        do {
+            applyEscort(try await api.sos(from: "phone"))
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            toast = "已发出求救，担保人正在联系你"
+        } catch let e as APIError {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            sosError = e.code == "no_guardian" ? e.message : "求救没发出去：\(e.message)。情况紧急请直接拨打 110"
+        } catch {
+            UINotificationFeedbackGenerator().notificationOccurred(.error)
+            sosError = "求救没发出去，可能是网络问题。情况紧急请直接拨打 110"
+        }
     }
 }

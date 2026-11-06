@@ -50,9 +50,14 @@ final class WatchModel: NSObject, ObservableObject {
         signedIn = true
     }
 
+    #if DEBUG
+    /// 仅调试包：没有后端时跳过登录看界面（没有令牌，api 为 nil，操作都不会生效）
+    func debugSkipLogin() { signedIn = true }
+    #endif
+
     func requestTokensFromPhone() {
         guard WCSession.default.activationState == .activated, WCSession.default.isReachable else {
-            message = "请在 iPhone 上打开夜归护航"
+            message = "请在 iPhone 上打开「到家没」"
             return
         }
         WCSession.default.sendMessage(["need": "tokens"], replyHandler: nil)
@@ -92,6 +97,27 @@ final class WatchModel: NSObject, ObservableObject {
             syncLocationTracking()
         } catch {
             message = error.localizedDescription
+        }
+    }
+
+    /// 一键求救：正在护航就立刻升级；没在护航就用全部担保人开一次护航并立刻响铃
+    func sos() async {
+        guard let api else {
+            message = "还没登录，求救发不出去。请直接拨打 110"
+            return
+        }
+        busy = true
+        defer { busy = false }
+        do {
+            escort = try await api.sos(from: "watch")
+            WKInterfaceDevice.current().play(.notification)
+            syncLocationTracking()
+        } catch let e as APIError {
+            WKInterfaceDevice.current().play(.failure)
+            message = e.code == "no_guardian" ? e.message : "求救没发出去：\(e.message)。请直接拨打 110"
+        } catch {
+            WKInterfaceDevice.current().play(.failure)
+            message = "求救没发出去，请直接拨打 110"
         }
     }
 

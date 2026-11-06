@@ -40,7 +40,7 @@ export function registerLanding(app: FastifyInstance, d: Deps) {
     const steps = prelaunch
       ? `<ol>
           <li><a class="btn" href="https://apps.apple.com/app/testflight/id899247664">① 安装 TestFlight</a></li>
-          <li>${d.config.ios.testFlightUrl ? `<a class="btn" href="${esc(d.config.ios.testFlightUrl)}">② 加入测试并安装夜归护航</a>` : '② 加入测试并安装夜归护航'}</li>
+          <li>${d.config.ios.testFlightUrl ? `<a class="btn" href="${esc(d.config.ios.testFlightUrl)}">② 加入测试并安装「到家没」</a>` : '② 加入测试并安装「到家没」'}</li>
           <li><a class="btn primary" href="${esc(req.url)}">③ 我装好了</a></li>
         </ol>`
       : `<ol>
@@ -56,7 +56,7 @@ export function registerLanding(app: FastifyInstance, d: Deps) {
         <p class="muted">${esc(p.explain)}</p>
         <p class="muted small">${left}</p>
         <div id="ios">
-          <h2>还没装夜归护航？</h2>
+          <h2>还没装「到家没」？</h2>
           ${steps}
           <p class="muted">装好后打开 App，在“有人邀请你？”里粘贴邀请码：</p>
           <p class="code">${esc(p.code ?? '')}</p>
@@ -76,7 +76,7 @@ function page(title: string, body: string) {
   return `<!doctype html><html lang="zh-CN"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex">
-<title>${esc(title)} · 夜归护航</title>
+<title>${esc(title)} · 到家没</title>
 <style>
 :root{--bg:#f4f5f8;--card:#fff;--fg:#14161c;--muted:#6b7080;--accent:#3b5bfd}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#1a1d24;--fg:#eef0f5;--muted:#9aa0ad}}

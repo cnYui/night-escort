@@ -193,6 +193,10 @@ export function registerRoutes(app: FastifyInstance, d: Deps) {
     );
     return escorts.startEscort(d, (await me(req)).userId, b);
   });
+  app.post('/v1/sos', async (req) => {
+    const b = parse(z.object({ from: z.enum(['phone', 'watch']).default('phone') }), req.body ?? {});
+    return escorts.sos(d, (await me(req)).userId, b.from);
+  });
   app.get('/v1/escorts/current', async (req) => ({ escort: await escorts.currentEscort(d, (await me(req)).userId) }));
   app.post('/v1/escorts/:id/checkin', async (req) => {
     const b = parse(z.object({ action: z.enum(['ok', 'arrived', 'elsewhere']).default('ok'), channel: z.enum(['watch', 'phone', 'notification', 'app']).default('app') }), req.body);
@@ -248,6 +252,7 @@ export function registerRoutes(app: FastifyInstance, d: Deps) {
   });
   app.get('/v1/incidents/:id', async (req) => incidents.guardianIncidentView(d, (await me(req)).userId, parse(idParam, req.params).id));
   app.post('/v1/incidents/:id/seen', async (req) => incidents.markSeen(d, (await me(req)).userId, parse(idParam, req.params).id));
+  app.post('/v1/incidents/:id/called', async (req) => incidents.markCalled(d, (await me(req)).userId, parse(idParam, req.params).id));
   app.post('/v1/incidents/:id/snooze', async (req) => incidents.snooze(d, (await me(req)).userId, parse(idParam, req.params).id));
   app.post('/v1/incidents/:id/unreachable', async (req) => incidents.markUnreachable(d, (await me(req)).userId, parse(idParam, req.params).id));
   app.post('/v1/incidents/:id/confirm-safe', async (req) => {
