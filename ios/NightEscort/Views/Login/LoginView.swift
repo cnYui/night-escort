@@ -47,7 +47,7 @@ struct LoginView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("夜归护航").font(.largeTitle.bold())
+                    Text("到家没").font(.largeTitle.bold())
                     Text("回家路上，有人一直在").foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 24)
@@ -216,7 +216,7 @@ struct BindPhoneView: View {
                     } label: { Text(sent ? "已发送" : "获取验证码") }
                 }
             } footer: {
-                Text("为了让每个担保人都对应一个真实的人，必须绑定手机号。号码不会被搜到，也不会给别人看。")
+                Text("为了让每个担保人都对应一个真实的人，必须绑定手机号。号码不会被搜到；只有在你求救或联系不上时，这次护航的担保人才能看到，方便直接给你打电话。")
             }
             Section {
                 AsyncButton {

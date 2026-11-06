@@ -1,5 +1,6 @@
 import EscortKit
 import SwiftUI
+import UIKit
 
 struct RootView: View {
     @EnvironmentObject var model: AppModel
@@ -23,6 +24,15 @@ struct RootView: View {
         .sheet(item: Binding(get: { model.pendingInvite.map(IdentifiedRef.init) }, set: { model.pendingInvite = $0?.ref })) { item in
             ConfirmInviteView(ref: item.ref)
                 .environmentObject(model)
+        }
+        // 求救没发出去：给一个直接拨 110 的出口
+        .alert("求救没发出去", isPresented: Binding(get: { model.sosError != nil }, set: { if !$0 { model.sosError = nil } })) {
+            Button("拨打 110") {
+                if let u = URL(string: "tel://110") { UIApplication.shared.open(u) }
+            }
+            Button("好", role: .cancel) {}
+        } message: {
+            Text(model.sosError ?? "")
         }
         // 到家提醒
         .alert("检测到你已经到\(model.homePrompt ?? "家")", isPresented: Binding(get: { model.homePrompt != nil }, set: { if !$0 { model.homePrompt = nil } })) {

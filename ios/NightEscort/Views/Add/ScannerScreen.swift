@@ -8,7 +8,7 @@ import VisionKit
 
 /**
  扫码页（8.3）：全屏取景，系统 VisionKit 识别；底部手电筒、从相册选、输入邀请码。
- 识别到本 App 的码轻震一下跳确认页；其他二维码只提示“这不是夜归护航的邀请码”，不跳转、不打开链接。
+ 识别到本 App 的码轻震一下跳确认页；其他二维码只提示“这不是「到家没」的邀请码”，不跳转、不打开链接。
  */
 struct ScannerScreen: View {
     @EnvironmentObject var model: AppModel
@@ -77,7 +77,7 @@ struct ScannerScreen: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             onFound(ref)
         } else {
-            hint = "这不是夜归护航的邀请码"
+            hint = "这不是「到家没」的邀请码"
         }
     }
 

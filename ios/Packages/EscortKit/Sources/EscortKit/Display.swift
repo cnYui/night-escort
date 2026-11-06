@@ -29,7 +29,9 @@ public enum Display {
             case .reminded: return "还没签到，5 分钟内不回应会请担保人联系你"
             case .escalated: return "担保人正在联系你"
             }
-        case .alerting: return "担保人正在联系你，点“我没事”报平安"
+        case .alerting:
+            if e.incident?.isSOS == true { return "已发出求救，担保人正在联系你。安全了就点“我没事”解除" }
+            return "担保人正在联系你，点“我没事”报平安"
         case .paused:
             if let u = e.pausedUntil { return "已暂停到 \(hhmm(u))" }
             return "已暂停"
@@ -44,6 +46,7 @@ public enum Display {
             if let inc = c.incident {
                 if inc.contactingByMe { return "你正在联系她" }
                 if let n = inc.contactingName { return "\(n)正在联系她" }
+                if inc.isSOS { return "她发起了求救，请马上打电话给她" }
             }
             return "联系不上，请尝试联系她"
         case .active:

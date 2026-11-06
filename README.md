@@ -1,12 +1,24 @@
-# 夜归护航
+# 到家没
 
-夜里一个人回家时，按间隔签到；没按时签到，App 先叫醒你选的担保人去联系你。v1 不发短信、不打电话、不报警，提醒全部走 App 推送和 App 内持续响铃。
+夜里一个人回家时，按间隔签到；没按时签到，App 先叫醒你选的担保人去联系你。遇到危险可以在手机或手表上长按 2 秒「一键求救」，所有担保人立刻响铃，担保人可以在提醒框里直接打电话给她。v1 不发短信、不打电话、不报警，提醒全部走 App 推送和 App 内持续响铃。
+
+设计稿、配色和图标源文件在 [`design/`](design/README.md)。
 
 仓库分三块：`backend/` 是 Node.js + PostgreSQL 后端（心跳引擎、担保授权、位置转发、推送），`ios/Packages/EscortKit/` 是手机、手表、小组件共用的 Swift 包（接口模型、到家判断、位置采样和上传队列，可以单独跑测试），`ios/` 里是 SwiftUI 的 iPhone App、Apple Watch App 和实时活动小组件，工程用 XcodeGen 生成。
 
 ## 后端
 
 需要 Node 20 和 PostgreSQL 16（Redis 可选，不配就用内存）。
+
+Mac 上最省事的办法是一键脚本：没有 Node / PostgreSQL 会用 Homebrew 装上，然后建库、建表、启动（验证码打印在这个终端里）：
+
+```bash
+bash backend/setup-local.sh
+```
+
+拉了新代码后如果有新的数据库迁移（`backend/migrations/`），再跑一次 `npm run migrate`。
+
+也可以用 Docker：
 
 ```bash
 cd backend

@@ -243,11 +243,19 @@ public struct EscortGuardian: Codable, Hashable, Identifiable, Sendable {
     public let lastViewedAt: Date?
 }
 
+/// 事件类型：漏签到（missed）或她主动求救（sos）
+public enum IncidentKind: String, Codable, Hashable, Sendable {
+    case missed, sos
+}
+
 public struct EscortIncident: Codable, Hashable, Sendable {
     public let id: String
     public let openedAt: Date
     public let contactingBy: String?
     public let contactingSince: Date?
+    public let kind: IncidentKind?
+
+    public var isSOS: Bool { kind == .sos }
 }
 
 public struct Intervention: Codable, Hashable, Sendable {
@@ -289,8 +297,11 @@ public enum CheckinChannel: String, Codable, Sendable { case watch, phone, notif
 
 public struct CardIncident: Codable, Hashable, Sendable {
     public let id: String
+    public let kind: IncidentKind?
     public let contactingName: String?
     public let contactingByMe: Bool
+
+    public var isSOS: Bool { kind == .sos }
 }
 
 public struct GuardCard: Codable, Hashable, Identifiable, Sendable {
@@ -347,8 +358,19 @@ public struct IncidentView: Codable, Hashable, Identifiable, Sendable {
     public let myTier: Tier
     public let canPauseOrEnd: Bool
     public let snoozedUntil: Date?
+    public let kind: IncidentKind?
+    /// 只在事件没结束时有值：给担保人直接打电话用
+    public let ownerPhone: String?
 
     public var isOpen: Bool { closedAt == nil }
+    public var isSOS: Bool { kind == .sos }
+
+    /// 拨号链接（去掉空格和 +86 以外的符号）
+    public var callURL: URL? {
+        guard let p = ownerPhone else { return nil }
+        let digits = p.filter { $0.isNumber || $0 == "+" }
+        return digits.isEmpty ? nil : URL(string: "tel://\(digits)")
+    }
 }
 
 /// 担保人怎么确认她安全的

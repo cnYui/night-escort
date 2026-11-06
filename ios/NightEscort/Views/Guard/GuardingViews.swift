@@ -119,6 +119,7 @@ struct GuardDetailView: View {
  */
 struct IncidentAlertView: View {
     @EnvironmentObject var model: AppModel
+    @Environment(\.openURL) private var openURL
     let incident: IncidentView
     @State private var confirming = false
     @State private var via: ConfirmVia = .wechat
@@ -130,7 +131,15 @@ struct IncidentAlertView: View {
             VStack(spacing: 18) {
                 Spacer(minLength: 10)
                 AvatarView(name: incident.owner.displayName, url: incident.owner.avatarUrl, size: 84, tint: .white)
-                Text("请尝试联系\(incident.owner.displayName)").font(.title.bold())
+                if incident.isSOS {
+                    Label("求救", systemImage: "sos")
+                        .font(.subheadline.weight(.heavy))
+                        .padding(.horizontal, 12).padding(.vertical, 5)
+                        .background(.white.opacity(0.22), in: Capsule())
+                }
+                Text(incident.isSOS ? "\(incident.owner.displayName)发起了求救" : "请尝试联系\(incident.owner.displayName)")
+                    .font(.title.bold())
+                    .multilineTextAlignment(.center)
                 Text(subtitle).multilineTextAlignment(.center).opacity(0.9)
                 if let p = incident.lastLocation {
                     Map(initialPosition: .region(MKCoordinateRegion(center: .init(latitude: p.lat, longitude: p.lng), latitudinalMeters: 800, longitudinalMeters: 800))) {
@@ -142,6 +151,18 @@ struct IncidentAlertView: View {
                 }
                 HStack(spacing: 12) {
                     // 拨号和打开微信都要担保人自己点，不需要接运营商服务
+                    if let tel = incident.callURL {
+                        Button {
+                            openURL(tel)
+                            Task { try? await model.api.markCalled(incidentId: incident.id) }
+                        } label: {
+                            Label("打电话给她", systemImage: "phone.fill")
+                                .font(.headline)
+                                .frame(maxWidth: .infinity).padding(.vertical, 12)
+                                .foregroundStyle(Theme.danger)
+                                .background(.white, in: RoundedRectangle(cornerRadius: 12))
+                        }
+                    }
                     Link(destination: URL(string: "weixin://")!) {
                         Label("去微信找她", systemImage: "message.fill").frame(maxWidth: .infinity).padding(.vertical, 12)
                             .background(.white.opacity(0.2), in: RoundedRectangle(cornerRadius: 12))
@@ -197,7 +218,8 @@ struct IncidentAlertView: View {
             parts.append("最后位置 \(Display.hhmm(p.recordedAt))\(p.batteryPct.map { "，电量 \($0)%" } ?? "")")
         }
         if let h = incident.nearHomeAt { parts.append("\(Display.hhmm(h)) 已到家附近") }
-        return parts.isEmpty ? "她 10 分钟没响应" : parts.joined(separator: "\n")
+        if parts.isEmpty { return incident.isSOS ? "她主动按了求救，请马上联系她" : "她 10 分钟没响应" }
+        return parts.joined(separator: "\n")
     }
 }
 

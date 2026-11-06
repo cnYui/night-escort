@@ -12,7 +12,7 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     DEVELOPMENT_TEAM: ""
     # 后端地址和邀请域名：改这里，或在 xcodebuild 命令行覆盖
-    API_BASE_URL: "https://api.example.com"
+    API_BASE_URL: "http://localhost:8080"
     INVITE_HOST: "ye.example.com"
 packages:
   EscortKit:
@@ -40,7 +40,7 @@ targets:
     info:
       path: NightEscort/Info.plist
       properties:
-        CFBundleDisplayName: 夜归护航
+        CFBundleDisplayName: 到家没
         NEApiBaseURL: $(API_BASE_URL)
         NEInviteHost: $(INVITE_HOST)
         UILaunchScreen: {}
@@ -53,11 +53,13 @@ targets:
         NSPhotoLibraryUsageDescription: 从相册里识别邀请二维码。
         LSApplicationQueriesSchemes: [weixin, weixinULAPI]
         ITSAppUsesNonExemptEncryption: false
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.nightescort.ios
         TARGETED_DEVICE_FAMILY: "1"
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
   NightEscortWidgets:
     type: app-extension
@@ -71,7 +73,7 @@ targets:
     info:
       path: NightEscortWidgets/Info.plist
       properties:
-        CFBundleDisplayName: 夜归护航
+        CFBundleDisplayName: 到家没
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -89,16 +91,18 @@ targets:
     info:
       path: NightEscortWatch/Info.plist
       properties:
-        CFBundleDisplayName: 夜归护航
+        CFBundleDisplayName: 到家没
         WKApplication: true
         WKCompanionAppBundleIdentifier: app.nightescort.ios
         WKBackgroundModes: [location]
+        NSAppTransportSecurity:
+          NSAllowsLocalNetworking: true
         NSLocationWhenInUseUsageDescription: 护航时判断你是否到家，位置只在手表上用，不上传。
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: app.nightescort.ios.watchkitapp
         TARGETED_DEVICE_FAMILY: "4"
-        ASSETCATALOG_COMPILER_APPICON_NAME: ""
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
 schemes:
   NightEscort:

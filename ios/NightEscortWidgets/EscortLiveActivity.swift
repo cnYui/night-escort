@@ -45,7 +45,7 @@ private struct LockScreenView: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("夜归护航").font(.headline)
+                Text("到家没").font(.headline)
                 Text(StatusText.line(state)).font(.subheadline).foregroundStyle(.secondary)
             }
             Spacer()

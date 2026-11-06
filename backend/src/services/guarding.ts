@@ -24,6 +24,7 @@ export async function guardingCards(d: Deps, guardianId: string) {
     tier: string;
     location_scope: string;
     incident_id: string | null;
+    incident_kind: string | null;
     contacting_by: string | null;
     contacting_since: Date | null;
     contacting_name: string | null;
@@ -31,7 +32,7 @@ export async function guardingCards(d: Deps, guardianId: string) {
     d.db,
     `SELECT e.id AS escort_id, e.owner_id, u.display_name, u.avatar_url, e.status, e.cycle_due_at, e.started_at, e.ended_at,
             e.end_reason, e.paused_until, e.near_home_at, g.tier, g.location_scope,
-            i.id AS incident_id, i.contacting_by, i.contacting_since, cu.display_name AS contacting_name
+            i.id AS incident_id, i.kind AS incident_kind, i.contacting_by, i.contacting_since, cu.display_name AS contacting_name
        FROM escort_guardians eg
        JOIN escorts e ON e.id = eg.escort_id
        JOIN users u ON u.id = e.owner_id
@@ -66,6 +67,7 @@ export async function guardingCards(d: Deps, guardianId: string) {
       incident: r.incident_id
         ? {
             id: r.incident_id,
+            kind: r.incident_kind,
             contacting_name: contacting ? r.contacting_name : null,
             contacting_by_me: contacting === guardianId,
           }

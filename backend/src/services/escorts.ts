@@ -213,6 +213,64 @@ export async function startEscort(
   return presentForOwner(d, escort.id);
 }
 
+// ───────────── 一键求救 ─────────────
+
+/**
+ * 她主动求救：立刻按“联系不上”的最高级别通知所有担保人，并带上最后位置。
+ * 正在护航就直接升级；没在护航就用她全部有效的担保人临时开一次护航（不检查通知是否就绪，求救时宁可多发）。
+ * 解除：她自己点“我没事”（签到）即关闭事件，和漏签到一样。
+ */
+export async function sos(d: Deps, ownerId: string, from: 'phone' | 'watch') {
+  const now = d.clock.now();
+  const after: After[] = [];
+  const escortId = await tx(d.db, async (c) => {
+    const open = await one<{ id: string }>(c, `SELECT id FROM escorts WHERE owner_id = $1 AND status <> 'ended' ORDER BY started_at DESC LIMIT 1`, [ownerId]);
+    let id = open?.id;
+    if (!id) {
+      const grants = await many<GrantRow>(
+        c,
+        `SELECT g.* FROM guardian_grants g JOIN users u ON u.id = g.guardian_id
+          WHERE g.owner_id = $1 AND g.revoked_at IS NULL AND g.expired_at IS NULL AND u.deleted_at IS NULL
+          ORDER BY g.tier, g.created_at`,
+        [ownerId],
+      );
+      const chosen: GrantRow[] = [];
+      for (const g of grants) {
+        if (chosen.length >= MAX_GUARDIANS_PER_ESCORT) break;
+        if ((await stateOf(c, g, now)).effective) chosen.push(g);
+      }
+      if (chosen.length === 0) throw conflict('no_guardian', '你还没有担保人，求救发不出去。请直接拨打 110');
+      const s0 = initialState(now, 30);
+      const row = await one<{ id: string }>(
+        c,
+        `INSERT INTO escorts (owner_id, status, interval_min, started_at, started_from, stage, cycle_due_at, next_deadline_at)
+         VALUES ($1, 'active', 30, $2, $3, 'waiting', $4, $5) RETURNING id`,
+        [ownerId, now, from, s0.cycle_due_at, nextDeadline(s0)],
+      );
+      id = row!.id;
+      for (const g of chosen) {
+        await c.query(
+          `INSERT INTO escort_guardians (escort_id, guardian_id, grant_id, scope_snapshot, added_at) VALUES ($1, $2, $3, $4, $5)`,
+          [id, g.guardian_id, g.id, g.tier === 'standing' ? 'live' : g.location_scope, now],
+        );
+      }
+    }
+    const e = (await lockEscort(c, id))!;
+    if ((await activeGuardians(c, id)).length === 0) throw conflict('no_guardian', '这次护航里没有担保人了，请直接拨打 110');
+    const st: EscortState = { ...e, status: 'alerting', stage: 'escalated', paused_until: null };
+    await saveState(c, id, st);
+    const { openIncidentTx } = await import('./incidents.js');
+    after.push(...(await openIncidentTx(d, c, { ...e, ...st }, now, 'sos')));
+    const inc = await one<{ id: string }>(c, `SELECT id FROM incidents WHERE escort_id = $1 AND closed_at IS NULL`, [id]);
+    if (inc) await c.query(`INSERT INTO incident_actions (incident_id, actor_id, action, created_at) VALUES ($1, $2, 'sos', $3)`, [inc.id, ownerId, now]);
+    return id;
+  });
+  const guardians = await activeGuardians(d.db, escortId);
+  after.push(async () => d.bus.emit({ type: 'escort_changed', ownerId, escortId, guardianIds: guardians.map((g) => g.guardian_id) }));
+  await runAfter(d, after);
+  return presentForOwner(d, escortId);
+}
+
 // ───────────── 读 ─────────────
 
 export async function presentForOwner(d: Deps, escortId: string) {
@@ -225,7 +283,7 @@ export async function presentForOwner(d: Deps, escortId: string) {
       WHERE eg.escort_id = $1 AND eg.removed_at IS NULL AND g.revoked_at IS NULL ORDER BY eg.added_at`,
     [escortId],
   );
-  const incident = await one(d.db, `SELECT id, opened_at, contacting_by, contacting_since FROM incidents WHERE escort_id = $1 AND closed_at IS NULL`, [escortId]);
+  const incident = await one(d.db, `SELECT id, opened_at, contacting_by, contacting_since, kind FROM incidents WHERE escort_id = $1 AND closed_at IS NULL`, [escortId]);
   const intervention = await guardianIntervention(d, escortId);
   return {
     id: e.id,
