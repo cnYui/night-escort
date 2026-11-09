@@ -62,7 +62,7 @@ final class WatchModel: NSObject, ObservableObject {
         case "sos": escort = DemoData.escort("alerting", sos: true)
         case "home": escort = DemoData.escort("active"); askHome = "家"
         case "message": message = "还没有默认担保人，请在 iPhone 上开始"
-        case "sosfail": sosFailed("求救没发出去，请直接拨打 110")
+        case "sosfail": sosFailed("可能是网络问题。情况紧急请直接拨打 110")
         default: break
         }
     }
@@ -131,7 +131,7 @@ final class WatchModel: NSObject, ObservableObject {
     /// 一键求救：正在护航就立刻升级；没在护航就用全部担保人开一次护航并立刻响铃
     func sos() async {
         guard let api else {
-            sosFailed("还没登录，求救发不出去。请直接拨打 110")
+            sosFailed("手表还没登录。情况紧急请直接拨打 110")
             return
         }
         busy = true
@@ -142,10 +142,13 @@ final class WatchModel: NSObject, ObservableObject {
             syncLocationTracking()
         } catch let e as APIError {
             WKInterfaceDevice.current().play(.failure)
-            sosFailed(e.code == "no_guardian" ? "\(e.message)。情况紧急请直接拨打 110" : "求救没发出去：\(e.message)。请直接拨打 110")
+            let reason = e.code == "no_guardian"
+                ? "你还没有担保人"
+                : e.message.trimmingCharacters(in: CharacterSet(charactersIn: "。．. "))
+            sosFailed("\(reason)。情况紧急请直接拨打 110")
         } catch {
             WKInterfaceDevice.current().play(.failure)
-            sosFailed("求救没发出去，请直接拨打 110")
+            sosFailed("可能是网络问题。情况紧急请直接拨打 110")
         }
     }
 
