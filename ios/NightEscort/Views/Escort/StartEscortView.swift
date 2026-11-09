@@ -23,7 +23,8 @@ struct StartEscortView: View {
 
     enum Destination: Hashable { case home, other }
 
-    private var homePlaces: [HomePlace] { HomePlaceStore.load() }
+    /// 从「设置家的位置」返回时要重新读一次
+    @State private var homePlaces: [HomePlace] = HomePlaceStore.load()
 
     var body: some View {
         NavigationStack {
@@ -81,18 +82,30 @@ struct StartEscortView: View {
                         .pickerStyle(.segmented)
                     }
 
-                    Section {
-                        Picker("今晚回哪", selection: $destination) {
-                            Text(homePlaces.first?.name ?? "家").tag(Destination.home)
-                            Text(tonightPlace?.name ?? "别的地方…").tag(Destination.other)
+                    if homePlaces.isEmpty {
+                        // 家还没设：不假装有个「家」可选，直接给设置入口
+                        Section {
+                            NavigationLink { HomePlacesView() } label: {
+                                Label("设置家的位置", systemImage: "house")
+                            }
+                            Button { pickingPlace = true } label: {
+                                LabeledContent("今晚去别的地方", value: tonightPlace?.name ?? "")
+                            }
+                        } header: {
+                            Text("今晚回哪")
+                        } footer: {
+                            Text("不设也能出发，只是到家时不会问你“到了吗”，要自己点结束。地点只存在这台手机上。")
                         }
-                        .onChange(of: destination) { _, d in if d == .other { pickingPlace = true } }
-                        if homePlaces.isEmpty {
-                            NavigationLink("设置家的位置，到家时提醒你结束") { HomePlacesView() }
-                                .font(.pf(.footnote))
+                    } else {
+                        Section {
+                            Picker("今晚回哪", selection: $destination) {
+                                Text(homePlaces.first?.name ?? "家").tag(Destination.home)
+                                Text(tonightPlace?.name ?? "别的地方…").tag(Destination.other)
+                            }
+                            .onChange(of: destination) { _, d in if d == .other { pickingPlace = true } }
+                        } footer: {
+                            Text("到了这个地方会问你“到了吗”。地点只存在这台手机上。")
                         }
-                    } footer: {
-                        Text("到了这个地方会问你“到了吗”。地点只存在这台手机上。")
                     }
 
                     if let error {
@@ -119,16 +132,17 @@ struct StartEscortView: View {
                 .padding()
             }
             .task { await load() }
+            .onAppear { homePlaces = HomePlaceStore.load() }
             .sheet(isPresented: $pickingPlace) {
                 PlacePicker(title: "今晚回哪", initial: nil) { place in
                     tonightPlace = place
-                    if place == nil { destination = .home }
+                    if place == nil { destination = .home } else if homePlaces.isEmpty { destination = .other }
                 }
             }
-            .alert("位置只在护航时使用", isPresented: $showLocationNote) {
+            .alert("位置只在回家路上使用", isPresented: $showLocationNote) {
                 Button("知道了") { UserDefaults.standard.set(true, forKey: "locationNoteShown") }
             } message: {
-                Text("行踪轨迹属于敏感个人信息。护航开始后才上报位置，只有这次选中的人能看到；结束就停止，没有出事的轨迹 24 小时后删除。接下来系统会问你位置权限，选“使用 App 时允许”即可。")
+                Text("行踪轨迹属于敏感个人信息。出发后才上报位置，只有这次选中的人能看到；结束就停止，没有出事的轨迹 24 小时后删除。接下来系统会问你位置权限，选“使用 App 时允许”即可。")
             }
         }
     }

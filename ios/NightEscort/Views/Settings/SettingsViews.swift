@@ -30,12 +30,11 @@ struct SettingsView: View {
                 Section {
                     NavigationLink { WhoCanSeeMeView() } label: { Label("谁能看到我", systemImage: "eye") }
                     NavigationLink { HomePlacesView() } label: { Label("我的家", systemImage: "house") }
-                    NavigationLink { GuardingWhoView() } label: { Label("我在守护的人", systemImage: "shield") }
                 }
                 Section {
                     NotificationStatusRow()
                 } footer: {
-                    Text("别人选你当担保人时，只能靠通知叫醒你。关了通知，对方开始护航时会看到“可能收不到通知”。")
+                    Text("别人回家时选你守护，只能靠通知叫醒你。关了通知，对方出发前会看到“可能收不到通知”。")
                 }
                 Section {
                     Button("退出登录") { Task { await model.signOut() } }
@@ -87,7 +86,7 @@ struct WhoCanSeeMeView: View {
                 Section {
                     Text(d.headline).font(.pf(.headline))
                 } footer: {
-                    Text("不管常驻还是临时，护航之外谁都看不到你的位置。")
+                    Text("不管常驻还是临时，只有你在回家路上时守护你的人才看得到你的位置。")
                 }
                 Section("有效的守护") {
                     ForEach(d.grants) { g in
@@ -160,7 +159,7 @@ struct HomePlacesView: View {
     @EnvironmentObject var model: AppModel
     @State private var places: [HomePlace] = HomePlaceStore.load()
     @State private var editing: HomePlace?
-    @State private var adding = HomePlacesView.demoOpensPicker
+    @State private var adding = false
 
     private static var demoOpensPicker: Bool {
         #if DEBUG
@@ -189,10 +188,19 @@ struct HomePlacesView: View {
                     Button { adding = true } label: { Label("添加地点", systemImage: "plus") }
                 }
             } footer: {
-                Text("家的位置只存在这台 iPhone 和你的手表上，不会上传，担保人也看不到。换手机后要重新设。到家时只会问你一句“安全到家了吗”，不会替你自动结束。")
+                Text("家的位置只存在这台 iPhone 和你的手表上，不会上传，守护你的人也看不到。换手机后要重新设。到家时只会问你一句“安全到家了吗”，不会替你自动结束。")
             }
         }
         .navigationTitle("我的家")
+        #if DEBUG
+        .task {
+            // 演示：页面推进来以后再弹地图，太早弹会被导航动画吞掉
+            if HomePlacesView.demoOpensPicker && !adding {
+                try? await Task.sleep(for: .seconds(1))
+                adding = true
+            }
+        }
+        #endif
         .sheet(isPresented: $adding) {
             PlacePicker(title: "添加地点", initial: nil) { p in
                 if let p { places.append(p); save() }

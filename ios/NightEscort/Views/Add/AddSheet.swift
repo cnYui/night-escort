@@ -47,7 +47,11 @@ struct AddSheet: View {
             }
             .navigationTitle("添加")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("关闭") { dismiss() } } }
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: { Image(systemName: "xmark") }.accessibilityLabel("关闭")
+                }
+            }
             .fullScreenCover(isPresented: $showScanner) {
                 ScannerScreen { ref in
                     showScanner = false

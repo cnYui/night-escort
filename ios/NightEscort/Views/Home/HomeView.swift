@@ -98,7 +98,11 @@ struct HomeView: View {
                 if DemoMode.scene == "add" { showAdd = true }
             }
             #endif
-            .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }
+            .sheet(isPresented: $showAdd) {
+                AddSheet().environmentObject(model)
+                    .presentationDetents([.medium, .large])
+                    .presentationBackground(Color(.systemGroupedBackground))
+            }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
             .sheet(isPresented: $showStart) {
                 // 人已经在气泡里选好了，开始页只剩间隔和目的地，半屏就够
