@@ -224,7 +224,13 @@ struct ConfirmInviteView: View {
                 }
                 .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
                 .padding(.top, 6)
-
+            }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+        }
+        // 两个按钮钉在底部：半屏高度下也一直看得见，上面的说明可以滚动
+        .safeAreaInset(edge: .bottom) {
+            VStack(spacing: 10) {
                 AsyncButton {
                     #if DEBUG
                     if DemoMode.scene != nil { dismiss(); return }
@@ -236,14 +242,15 @@ struct ConfirmInviteView: View {
                 } label: { Text("成为担保人").font(.pf(.headline)).frame(maxWidth: .infinity) }
                 .glassProminentButton(tint: tint)
                 .controlSize(.large)
-                .padding(.top, 8)
 
                 Button { dismiss() } label: { Text("暂不").font(.pf(.body)).frame(maxWidth: .infinity) }
                     .glassButton()
                     .controlSize(.large)
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 20)
+            .padding(.top, 10)
+            .padding(.bottom, 8)
+            .background(Color(.systemGroupedBackground))
         }
         .background(Color(.systemGroupedBackground))
     }
