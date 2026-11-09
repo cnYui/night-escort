@@ -101,6 +101,7 @@ struct HomeView: View {
                 // 人已经在气泡里选好了，开始页只剩间隔和目的地，半屏就够
                 StartEscortView(preselected: picked).environmentObject(model)
                     .presentationDetents(picked.isEmpty ? [.large] : [.medium, .large])
+                    .presentationBackground(Color(.systemGroupedBackground))
             }
             .onChange(of: escortOpen) { _, open in if open { picked = [] } }
             .animation(.spring(duration: 0.35), value: picked.isEmpty)

@@ -76,10 +76,11 @@ struct GraphView: View {
         let z = fit * (zoom * pinch).clamped(to: Self.zoomRange)
         let off = CGSize(width: pan.width + drag.width, height: pan.height + drag.height)
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        // 外圈没坐满时整团的重心会偏，挪回正中
+        // 外圈没坐满时整团会偏向一边，按外框挪回正中
         let rawCells = Self.hexCells(count: people.count + 1)
-        let cx = rawCells.map(\.x).reduce(0, +) / CGFloat(rawCells.count)
-        let cy = rawCells.map(\.y).reduce(0, +) / CGFloat(rawCells.count)
+        let xs = rawCells.map(\.x), ys = rawCells.map(\.y)
+        let cx = ((xs.min() ?? 0) + (xs.max() ?? 0)) / 2
+        let cy = ((ys.min() ?? 0) + (ys.max() ?? 0)) / 2
         let cells = rawCells.map { CGPoint(x: $0.x - cx, y: $0.y - cy) }
         let moved = abs(zoom - 1) > 0.01 || hypot(pan.width, pan.height) > 1
 
