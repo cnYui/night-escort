@@ -18,6 +18,11 @@ OUT="${OUT:-/tmp/ne-mvp}"
 DEVICE="${DEVICE:-iPhone 17}"
 CODE=246810
 mkdir -p "$OUT"
+# 跑测试期间别让 Mac 睡着（只管系统空闲睡眠；笔记本合盖仍然会睡，要开着盖）
+if [ -z "${NE_CAFFEINATED:-}" ] && command -v caffeinate >/dev/null; then
+  export NE_CAFFEINATED=1
+  exec caffeinate -dims "$0" "$@"
+fi
 rm -rf "$OUT/result.xcresult" "$OUT/shots"
 
 BACKEND_PID=""
