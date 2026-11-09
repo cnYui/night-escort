@@ -2,7 +2,7 @@ import EscortKit
 import SwiftUI
 import UIKit
 
-/// 首页：搜索栏 + 「+」，关系图谱，开始护航 / 护航中面板。
+/// 首页：搜索栏 + 「+」，谁在守护我（气泡或列表），我要回家了 / 回家路上面板。
 struct HomeView: View {
     @EnvironmentObject var model: AppModel
     @State private var showAdd = false
@@ -38,30 +38,53 @@ struct HomeView: View {
                     InterventionBanner(text: inter.text)
                 }
 
-                GraphView(
-                    me: model.user?.displayName ?? "我",
-                    connections: model.connections,
-                    inEscort: Set(model.escort?.guardians.map(\.id) ?? []),
-                    onTap: { selected = $0 },
-                    onDragOut: { scheduleRemoval($0) }
-                )
-                .frame(maxHeight: .infinity)
+                switch HomeStyle.current {
+                case .bubble:
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("谁在守护我").font(.pf(.title3, weight: .semibold))
+                        Text("回家时从这些人里选几个，他们会看到你到没到家。")
+                            .font(.pf(.footnote)).foregroundStyle(.secondary)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    GraphView(
+                        me: model.user?.displayName ?? "我",
+                        connections: model.connections,
+                        inEscort: Set(model.escort?.guardians.map(\.id) ?? []),
+                        onTap: { selected = $0 },
+                        onDragOut: { scheduleRemoval($0) }
+                    )
+                    .frame(maxHeight: .infinity)
+                case .list:
+                    PeopleListView(
+                        connections: model.connections,
+                        inEscort: Set(model.escort?.guardians.map(\.id) ?? []),
+                        onTap: { selected = $0 },
+                        onRemove: { scheduleRemoval($0) }
+                    )
+                    .frame(maxHeight: .infinity)
+                }
 
                 if let e = model.escort, e.isOpen {
                     ActiveEscortPanel(escort: e)
                 } else {
-                    HStack(alignment: .center, spacing: 14) {
+                    // 首页不放求救按钮：求救在回家路上的面板里和手表上
+                    VStack(spacing: 8) {
                         Button { showStart = true } label: {
-                            Label { Text("开始护航").font(.pf(.headline)) } icon: { Image(systemName: "moon.stars.fill") }
-                                .frame(maxWidth: .infinity)
+                            Label { Text("我要回家了").font(.pf(.headline)) } icon: { Image(systemName: "house.fill") }
+                                .padding(.horizontal, 28)
                         }
                         .glassProminentButton()
                         .controlSize(.large)
-                        SOSHoldButton { await model.sos() }
+                        Text("选几个人守着你，到家前定时报个平安")
+                            .font(.pf(.footnote)).foregroundStyle(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
                     .padding()
                 }
             }
+            .background(HomeStyle.current == .list ? Color(.systemGroupedBackground) : Color(.systemBackground))
             .overlay(alignment: .bottom) {
                 if let p = pendingRemoval {
                     HStack {
@@ -177,7 +200,7 @@ struct ActiveEscortPanel: View {
                 Menu {
                     Button("我到了，结束") { Task { await model.checkin(.arrived) } }
                     Button("我在别处过夜，结束") { Task { await model.checkin(.elsewhere) } }
-                    Button("结束护航", role: .destructive) { Task { await model.endEscort() } }
+                    Button("结束，不用再守了", role: .destructive) { Task { await model.endEscort() } }
                 } label: {
                     Text("结束").font(.pf(.headline)).padding(.horizontal, 6)
                 }
@@ -199,7 +222,7 @@ struct ActiveEscortPanel: View {
         switch escort.status {
         case .alerting: return escort.incident?.isSOS == true ? "已发出求救" : "需要你回应"
         case .paused: return "已暂停"
-        default: return "护航中"
+        default: return "回家路上"
         }
     }
 

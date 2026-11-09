@@ -49,10 +49,10 @@ struct StartEscortView: View {
                             .buttonStyle(.plain)
                         }
                     } header: {
-                        Text("本次担保人（最多 \(o.maxGuardians) 人）")
+                        Text("这次谁守着你（最多 \(o.maxGuardians) 人）")
                     }
 
-                    Section("多久签到一次") {
+                    Section("多久报一次平安") {
                         Picker("间隔", selection: $interval) {
                             ForEach(o.intervals, id: \.self) { Text("\($0) 分钟").tag($0) }
                         }
@@ -80,7 +80,7 @@ struct StartEscortView: View {
                     ProgressView()
                 }
             }
-            .navigationTitle("开始护航")
+            .navigationTitle("我要回家了")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -89,7 +89,7 @@ struct StartEscortView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 AsyncButton { try await start() } label: {
-                    Text(allNotReady ? "选中的人都可能收不到通知" : "开始").font(.pf(.headline)).frame(maxWidth: .infinity)
+                    Text(allNotReady ? "选中的人都可能收不到通知" : "出发").font(.pf(.headline)).frame(maxWidth: .infinity)
                 }
                 .glassProminentButton()
                 .controlSize(.large)

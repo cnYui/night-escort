@@ -2,7 +2,7 @@ import EscortKit
 import MapKit
 import SwiftUI
 
-/// 守护页：每人一张卡，联系不上 > 护航中 > 暂停 > 已结束
+/// 我守护的人：别人回家时选了我，我在这里看她们的状态。每人一张卡，联系不上 > 护航中 > 暂停 > 已结束
 struct GuardingView: View {
     @EnvironmentObject var model: AppModel
 
@@ -10,17 +10,25 @@ struct GuardingView: View {
         NavigationStack {
             List {
                 if model.cards.isEmpty {
-                    ContentUnavailableView("现在没有人需要你守护", systemImage: "moon.zzz", description: Text("有人护航并选了你时，这里会出现她的卡片。"))
+                    ContentUnavailableView("现在没人需要你守护", systemImage: "moon.zzz", description: Text("朋友回家时选了你，她就会出现在这里。"))
                 }
-                ForEach(model.cards) { c in
-                    NavigationLink {
-                        GuardDetailView(card: c)
-                    } label: {
-                        GuardCardRow(card: c)
+                if !model.cards.isEmpty {
+                    Section {
+                        ForEach(model.cards) { c in
+                            NavigationLink {
+                                GuardDetailView(card: c)
+                            } label: {
+                                GuardCardRow(card: c)
+                            }
+                        }
+                    } header: {
+                        Text("她们回家时选了你")
+                    } footer: {
+                        Text("这里是你在守护的人，不是守护你的人。她们出事或联系不上时，你会马上收到提醒。守护你的人在「回家」页。")
                     }
                 }
             }
-            .navigationTitle("守护")
+            .navigationTitle("我守护的人")
             .refreshable { await model.refreshGuarding() }
             .task { await model.refreshGuarding() }
         }
@@ -73,7 +81,7 @@ struct GuardDetailView: View {
             } else {
                 VStack(spacing: 10) {
                     Image(systemName: "location.slash").font(.largeTitle).foregroundStyle(.secondary)
-                    Text(card.status == .ended ? "护航已结束，看不到位置" : "护航中，下次签到前你看不到她的位置")
+                    Text(card.status == .ended ? "她已经结束了，看不到位置" : "她在回家路上，下次报平安前你看不到她的位置")
                         .foregroundStyle(.secondary)
                     Text("她没响应时会通知你").font(.pf(.footnote)).foregroundStyle(.secondary)
                 }

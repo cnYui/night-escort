@@ -71,10 +71,10 @@ struct MainTabs: View {
     var body: some View {
         TabView(selection: $tab) {
             HomeView()
-                .tabItem { Label("首页", systemImage: "person.3.fill") }
+                .tabItem { Label("回家", systemImage: "house.fill") }
                 .tag(0)
             GuardingView()
-                .tabItem { Label("守护", systemImage: "shield.lefthalf.filled") }
+                .tabItem { Label("我守护的人", systemImage: "shield.lefthalf.filled") }
                 .badge(model.cards.filter { $0.status == .alerting }.count)
                 .tag(1)
             SettingsView()
