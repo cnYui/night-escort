@@ -154,11 +154,17 @@ struct InviteView: View {
 
     private func create() async {
         guard invite == nil else { return }
+        #if DEBUG
+        if DemoMode.scene != nil { invite = DemoData.invite(kind: kind.rawValue); return }
+        #endif
         do { invite = try await model.api.createInvite(kind: kind, template: template) } catch { model.toast = error.localizedDescription }
     }
 
     private func poll() async {
         guard let id = invite?.id else { return }
+        #if DEBUG
+        if DemoMode.scene != nil { return }
+        #endif
         while !Task.isCancelled {
             try? await Task.sleep(for: .seconds(2))
             guard let s = try? await model.api.inviteStatus(id: id) else { continue }

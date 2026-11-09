@@ -6,7 +6,7 @@ import Foundation
  演示模式（只在调试包里有）：不连后端，用一组示例数据把各个界面摆出来，方便在模拟器里截图。
  启动参数 `-demoScene <名字>`，例如：
    xcrun simctl launch booted app.nightescort.ios -demoScene home
- iPhone：login / home / start / active / sos / guarding / incident / me / myhome（我的家）/ pickplace（地图选点）
+ iPhone：login / home / start / active / sos / guarding / incident / me / myhome（我的家）/ pickplace（地图选点）/ add（点 + 的添加页）
  手表：signin / idle / running / paused / alerting / sos / sosfail / home / message
  */
 enum DemoMode {
@@ -31,6 +31,12 @@ enum DemoData {
     static var user: PublicUser {
         decode(PublicUser.self, """
         {"id":"u-me","display_name":"小林","phone_masked":"138****5621","time_zone":"Asia/Shanghai","has_wechat":false,"has_apple":false}
+        """)
+    }
+
+    static func invite(kind: String) -> Invite {
+        decode(Invite.self, """
+        {"id":"inv-demo","kind":"\(kind)","token":"demo-token","code":"528 316","url":"https://ye.example.com/i/demo-token","expires_at":"\(iso(23 * 3600 + 41 * 60))"}
         """)
     }
 

@@ -93,7 +93,10 @@ struct HomeView: View {
             .background(Color(.systemBackground))
             .toolbar(.hidden, for: .navigationBar)
             #if DEBUG
-            .onAppear { if DemoMode.scene == "start" { showStart = true } }
+            .onAppear {
+                if DemoMode.scene == "start" { showStart = true }
+                if DemoMode.scene == "add" { showAdd = true }
+            }
             #endif
             .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
