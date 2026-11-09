@@ -266,20 +266,12 @@ public final class APIClient: @unchecked Sendable {
     public func refreshInvite(id: String) async throws -> Invite { try await request("POST", "/v1/invites/\(id)/refresh", body: Empty()) }
 
     public func previewInvite(_ ref: InviteRef) async throws -> InvitePreview {
-        switch ref {
-        case .token(let t): return try await request("GET", "/v1/invites/preview?token=\(t.urlQueryEscaped)")
-        case .code(let c): return try await request("GET", "/v1/invites/preview?code=\(c.urlQueryEscaped)")
-        }
+        try await request("GET", "/v1/invites/preview?token=\(ref.token.urlQueryEscaped)")
     }
 
     public func acceptInvite(_ ref: InviteRef, relation: String?, alsoGuardMe: Bool) async throws -> AcceptResult {
-        struct B: Encodable { let token: String?; let code: String?; let relation: String?; let alsoGuardMe: Bool }
-        let b: B
-        switch ref {
-        case .token(let t): b = B(token: t, code: nil, relation: relation, alsoGuardMe: alsoGuardMe)
-        case .code(let c): b = B(token: nil, code: c, relation: relation, alsoGuardMe: alsoGuardMe)
-        }
-        return try await request("POST", "/v1/invites/accept", body: b)
+        struct B: Encodable { let token: String; let relation: String?; let alsoGuardMe: Bool }
+        return try await request("POST", "/v1/invites/accept", body: B(token: ref.token, relation: relation, alsoGuardMe: alsoGuardMe))
     }
 
     // MARK: 连接与授权

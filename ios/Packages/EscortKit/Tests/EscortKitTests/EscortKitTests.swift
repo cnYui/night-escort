@@ -123,15 +123,23 @@ final class InviteLinkTests: XCTestCase {
 
     func testParse() {
         XCTAssertEqual(InviteLink.parse("https://ye.example.com/i/AbC_123-xyz0", allowedHosts: hosts), .token("AbC_123-xyz0"))
-        XCTAssertEqual(InviteLink.parse(" 482913 ", allowedHosts: hosts), .code("482913"))
+        XCTAssertEqual(InviteLink.parse("anquanhuijia://i/AbC_123-xyz0", allowedHosts: hosts), .token("AbC_123-xyz0"))
+        // 不再有 6 位邀请码
+        XCTAssertNil(InviteLink.parse(" 482913 ", allowedHosts: hosts))
         XCTAssertNil(InviteLink.parse("https://evil.example.com/i/AbC_123-xyz0", allowedHosts: hosts))
         XCTAssertNil(InviteLink.parse("https://ye.example.com/x/AbC_123-xyz0", allowedHosts: hosts))
+        XCTAssertNil(InviteLink.parse("anquanhuijia://x/AbC_123-xyz0", allowedHosts: hosts))
         XCTAssertNil(InviteLink.parse("WIFI:S:home;T:WPA;P:secret;;", allowedHosts: hosts))
     }
 
-    func testFindCodeInPastedText() {
-        XCTAssertEqual(InviteLink.findCode(in: "小林邀请你守护她，邀请码 482913，24 小时内有效"), "482913")
-        XCTAssertNil(InviteLink.findCode(in: "电话 13800138000"))
+    func testFindLinkInPastedText() {
+        let shared = InviteLink.shareText(inviterName: "小林", kind: .standing, url: "https://ye.example.com/i/AbC_123-xyz0")
+        XCTAssertEqual(InviteLink.find(in: shared, allowedHosts: hosts), .token("AbC_123-xyz0"))
+        // 链接前后紧挨着中文和标点
+        XCTAssertEqual(InviteLink.find(in: "快点这个https://ye.example.com/i/AbC_123-xyz0。谢谢", allowedHosts: hosts), .token("AbC_123-xyz0"))
+        XCTAssertEqual(InviteLink.find(in: "先看 https://other.com/a 再看 https://YE.example.com/i/AbC_123-xyz0", allowedHosts: hosts), .token("AbC_123-xyz0"))
+        XCTAssertNil(InviteLink.find(in: "邀请码 482913", allowedHosts: hosts))
+        XCTAssertNil(InviteLink.find(in: "https://evil.example.com/i/AbC_123-xyz0", allowedHosts: hosts))
     }
 }
 

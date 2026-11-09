@@ -20,11 +20,31 @@ struct RootView: View {
                 .environmentObject(model)
                 .interactiveDismissDisabled()
         }
-        // 扫码或点链接进来的邀请
-        .sheet(item: Binding(get: { model.pendingInvite.map(IdentifiedRef.init) }, set: { model.pendingInvite = $0?.ref })) { item in
+        // 扫码、点链接、粘贴板里认出来的邀请：弹“成为担保人”。没登录先不弹，登录后接着弹
+        .sheet(item: Binding(get: { model.signedIn ? model.pendingInvite.map(IdentifiedRef.init) : nil }, set: { model.pendingInvite = $0?.ref })) { item in
             ConfirmInviteView(ref: item.ref)
                 .environmentObject(model)
+                // 直接全高：说明、关系、“也让她守护我”和两个按钮一屏看全
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
+        .safeAreaInset(edge: .top) {
+            if !model.signedIn, model.pendingInvite != nil {
+                Label("有人邀请你当担保人，登录后继续", systemImage: "person.badge.shield.checkmark")
+                    .font(.pf(.subheadline, weight: .medium))
+                    .foregroundStyle(Theme.accent)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .glassBackground(in: Capsule())
+                    .padding(.top, 4)
+            }
+        }
+        #if DEBUG
+        .sheet(isPresented: .constant(DemoMode.scene == "invite")) {
+            NavigationStack { InviteView(kind: .standing, template: nil) }
+                .environmentObject(model)
+        }
+        #endif
         // 求救没发出去：给一个直接拨 110 的出口
         .alert("求救没发出去", isPresented: Binding(get: { model.sosError != nil }, set: { if !$0 { model.sosError = nil } })) {
             Button("拨打 110") {
@@ -56,12 +76,7 @@ struct RootView: View {
 
 struct IdentifiedRef: Identifiable {
     let ref: InviteRef
-    var id: String {
-        switch ref {
-        case .token(let t): return "t:\(t)"
-        case .code(let c): return "c:\(c)"
-        }
-    }
+    var id: String { ref.token }
 }
 
 struct MainTabs: View {

@@ -112,13 +112,12 @@ export function registerRoutes(app: FastifyInstance, d: Deps) {
     return invites.createInvite(d, (await me(req)).userId, b.kind, b.template);
   });
   app.get('/v1/invites/preview', async (req) => {
-    const q = parse(z.object({ token: z.string().optional(), code: z.string().optional() }), req.query);
-    if (!q.token && !q.code) throw badRequest('ref_required', '缺少邀请');
-    return invites.previewInvite(d, q, (await optionalAuth(d, req))?.userId);
+    const q = parse(z.object({ token: z.string().min(1) }), req.query);
+    return invites.previewInvite(d, q.token, (await optionalAuth(d, req))?.userId);
   });
   app.post('/v1/invites/accept', async (req) => {
     const b = parse(
-      z.object({ token: z.string().optional(), code: z.string().optional(), relation: z.string().max(10).optional(), also_guard_me: z.boolean().optional() }),
+      z.object({ token: z.string().min(1), relation: z.string().max(10).optional(), also_guard_me: z.boolean().optional() }),
       req.body,
     );
     return invites.acceptInvite(d, (await me(req)).userId, b);

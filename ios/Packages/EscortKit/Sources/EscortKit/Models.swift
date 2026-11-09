@@ -160,7 +160,6 @@ public struct Invite: Codable, Hashable, Identifiable, Sendable {
     public let id: String
     public let kind: InviteKind
     public let token: String
-    public let code: String
     public let url: String
     public let expiresAt: Date
     public let template: TemporaryTemplate?
@@ -180,7 +179,6 @@ public struct InvitePreview: Codable, Sendable {
     public let kind: InviteKind?
     public let inviter: Inviter?
     public let expiresAt: Date?
-    public let code: String?
     public let headline: String?
     public let explain: String?
     public let offerReverse: Bool?
@@ -191,9 +189,9 @@ public struct InvitePreview: Codable, Sendable {
         case "valid": return nil
         case "expired": return "这个邀请已过期，请让对方重新发一个"
         case "consumed", "revoked": return "这个邀请已经用过了"
-        case "own": return "这是你自己的邀请码"
+        case "own": return "这是你自己发出的邀请"
         case "already_guardian": return "你已经在守护她了"
-        default: return "邀请码不对"
+        default: return "这个邀请链接不对"
         }
     }
 }
