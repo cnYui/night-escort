@@ -6,7 +6,7 @@ import Foundation
  演示模式（只在调试包里有）：不连后端，用一组示例数据把各个界面摆出来，方便在模拟器里截图。
  启动参数 `-demoScene <名字>`，例如：
    xcrun simctl launch booted app.nightescort.ios -demoScene home
- iPhone：login / home / start / active / sos / guarding / incident / me
+ iPhone：login / home / start / active / sos / guarding / incident / me / myhome（我的家）/ pickplace（地图选点）
  手表：signin / idle / running / paused / alerting / sos / sosfail / home / message
  */
 enum DemoMode {

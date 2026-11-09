@@ -5,6 +5,15 @@ import UserNotifications
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
     @State private var confirmDelete = false
+    @State private var showHomePlaces = SettingsView.demoOpensHomePlaces
+
+    private static var demoOpensHomePlaces: Bool {
+        #if DEBUG
+        return ["myhome", "pickplace"].contains(DemoMode.scene ?? "")
+        #else
+        return false
+        #endif
+    }
 
     var body: some View {
         NavigationStack {
@@ -34,6 +43,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("我的")
+            .navigationDestination(isPresented: $showHomePlaces) { HomePlacesView() }
             .confirmationDialog("删除后所有连接、授权和位置记录立即删除，不能恢复。", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("删除账号", role: .destructive) {
                     Task {
@@ -150,7 +160,15 @@ struct HomePlacesView: View {
     @EnvironmentObject var model: AppModel
     @State private var places: [HomePlace] = HomePlaceStore.load()
     @State private var editing: HomePlace?
-    @State private var adding = false
+    @State private var adding = HomePlacesView.demoOpensPicker
+
+    private static var demoOpensPicker: Bool {
+        #if DEBUG
+        return DemoMode.scene == "pickplace"
+        #else
+        return false
+        #endif
+    }
 
     var body: some View {
         List {

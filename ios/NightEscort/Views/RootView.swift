@@ -87,7 +87,7 @@ struct MainTabs: View {
         #if DEBUG
         switch DemoMode.scene {
         case "guarding", "incident": return 1
-        case "me": return 2
+        case "me", "myhome", "pickplace": return 2
         default: return 0
         }
         #else
