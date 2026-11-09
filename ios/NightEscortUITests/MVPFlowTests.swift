@@ -82,6 +82,10 @@ final class MVPFlowTests: XCTestCase {
         shot("首页（还没有好友）")
 
         // 2. 好友发来邀请链接，点开后加为好友（长期互相守护）
+        // app.open 可能会重新拉起 App，这时不能再带 -uiTestReset，不然刚登录的状态被清掉
+        if let i = app.launchArguments.firstIndex(of: "-uiTestReset") {
+            app.launchArguments.removeSubrange(i...min(i + 1, app.launchArguments.count - 1))
+        }
         let invite = try await ke.api.createInvite(kind: .standing)
         app.open(URL(string: "\(InviteLink.appScheme)://i/\(invite.token)")!)
         let add = app.buttons["加为好友"]

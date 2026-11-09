@@ -12,6 +12,7 @@ struct SettingsView: View {
     @State private var pickingAvatar = false
     @State private var avatarItem: PhotosPickerItem?
     @State private var uploadingAvatar = false
+    @State private var legal: LegalDoc?
 
     private static func demo(_ scene: String) -> Bool {
         #if DEBUG
@@ -66,6 +67,11 @@ struct SettingsView: View {
                     Text("别人回家时选你守护，只能靠通知叫醒你。关了通知，对方出发前会看到“可能收不到通知”。")
                 }
                 Section {
+                    Button { legal = .terms } label: { Label("用户协议", systemImage: "doc.text").font(.pf(.body)) }
+                    Button { legal = .privacy } label: { Label("隐私政策", systemImage: "hand.raised").font(.pf(.body)) }
+                }
+                .foregroundStyle(.primary)
+                Section {
                     Button("退出登录") { Task { await model.signOut() } }
                     Button("删除账号", role: .destructive) { confirmDelete = true }
                 }
@@ -78,6 +84,7 @@ struct SettingsView: View {
             }
             .navigationDestination(isPresented: $showHomePlaces) { HomePlacesView() }
             .navigationDestination(isPresented: $showMyCode) { MyCodeView() }
+            .sheet(item: $legal) { LegalView(doc: $0) }
             .confirmationDialog("删除后所有连接、授权和位置记录立即删除，不能恢复。", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("删除账号", role: .destructive) {
                     Task {
