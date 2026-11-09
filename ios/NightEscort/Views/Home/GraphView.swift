@@ -52,7 +52,8 @@ struct GraphView: View {
     private static let meSize: CGFloat = 92
     /// 每个位置的角度和远近都稍微错开一点，看起来像散开的气泡，不是钟表刻度
     private static let angleJitter: [Double] = [0, 9, -7, 12, -10, 6]
-    private static let ringJitter: [CGFloat] = [0, 0.05, -0.03, 0.06, -0.02, 0.04]
+    /// 远近只做一点点区分，亲疏主要看气泡大小
+    private static let ringJitter: [CGFloat] = [0, 0.03, -0.02, 0.03, -0.01, 0.02]
 
     @State private var dragging: String?
     @State private var dragOffset: CGSize = .zero
@@ -64,10 +65,6 @@ struct GraphView: View {
             let split = HomePeople.split(connections)
             let shown = split.shown
             ZStack {
-                // 中间的淡蓝光晕，只做背景，不连到任何人
-                Circle().fill(Theme.accent.opacity(0.05)).frame(width: size * 0.86, height: size * 0.86).position(center)
-                Circle().fill(Theme.accent.opacity(0.07)).frame(width: size * 0.5, height: size * 0.5).position(center)
-
                 if shown.isEmpty {
                     VStack(spacing: 6) {
                         Text("还没有人守护你").font(.pf(.headline))
@@ -123,7 +120,7 @@ struct GraphView: View {
 
     private func position(_ i: Int, count: Int, c: Connection, size: CGFloat, center: CGPoint) -> CGPoint {
         let d = HomePeople.days(c)
-        let ring: CGFloat = (d <= 7 ? 0.6 : d <= 20 ? 0.7 : 0.8) + Self.ringJitter[i % 6]
+        let ring: CGFloat = (d <= 7 ? 0.64 : d <= 20 ? 0.7 : 0.76) + Self.ringJitter[i % 6]
         let angle = (Double(i) / Double(max(count, 1))) * 2 * .pi - .pi / 2 + Self.angleJitter[i % 6] * .pi / 180
         let r = size / 2 * ring
         return CGPoint(x: center.x + r * CGFloat(cos(angle)), y: center.y + r * CGFloat(sin(angle)))
@@ -138,7 +135,10 @@ private struct BubbleView: View {
     var body: some View {
         let c = connection
         let isGuardian = c.guardsMe != nil
-        let size: CGFloat = isGuardian ? 70 : 52
+        // 气泡大小表示亲疏：7 天内一起回过家最大，越久越小；还不能守护你的人再小一号
+        let d = HomePeople.days(c)
+        let base: CGFloat = d <= 7 ? 74 : d <= 20 ? 60 : 50
+        let size: CGFloat = isGuardian ? base : base * 0.8
         let faded = HomePeople.days(c) > 20
         ZStack(alignment: .topTrailing) {
             AvatarView(name: c.shownName, url: c.peer.avatarUrl, size: size)
