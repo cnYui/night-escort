@@ -4,10 +4,24 @@ import UIKit
 
 struct RootView: View {
     @EnvironmentObject var model: AppModel
+    #if DEBUG
+    @State private var demoPickPlace = false
+    #endif
+
+    /// 演示：地图选点直接当整页显示，用来分清是弹窗的问题还是地图本身的问题
+    private static var demoPlacePage: Bool {
+        #if DEBUG
+        return DemoMode.scene == "pickplace-page"
+        #else
+        return false
+        #endif
+    }
 
     var body: some View {
         Group {
-            if model.signedIn {
+            if RootView.demoPlacePage {
+                PlacePicker(title: "添加地点", initial: nil) { _ in }
+            } else if model.signedIn {
                 MainTabs()
             } else {
                 LoginView()
@@ -44,9 +58,15 @@ struct RootView: View {
             NavigationStack { MyCodeView() }
                 .environmentObject(model)
         }
-        // 地图选点：直接从最外层弹，和「我的家」里点「添加地点」是同一个页面
-        .sheet(isPresented: .constant(DemoMode.scene == "pickplace")) {
+        // 地图选点：和「我的家」里点「添加地点」是同一个页面。界面出来以后再弹，启动那一刻就弹可能被系统丢掉
+        .sheet(isPresented: $demoPickPlace) {
             PlacePicker(title: "添加地点", initial: nil) { _ in }
+        }
+        .task {
+            if DemoMode.scene == "pickplace" {
+                try? await Task.sleep(for: .seconds(1.5))
+                demoPickPlace = true
+            }
         }
         #endif
         // 求救没发出去：给一个直接拨 110 的出口

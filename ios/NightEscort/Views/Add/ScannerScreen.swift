@@ -65,14 +65,9 @@ struct ScannerScreen: View {
                 HStack(alignment: .top, spacing: 28) {
                     tool("手电筒", systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill") { toggleTorch() }
                     PhotosPicker(selection: $photo, matching: .images) { toolLabel("相册", systemImage: "photo") }
-                    VStack(spacing: 6) {
-                        PasteButton(payloadType: String.self) { strings in
-                            Task { @MainActor in paste(strings) }
-                        }
-                        .labelStyle(.iconOnly)
-                        .buttonBorderShape(.circle)
-                        .tint(Color.white.opacity(0.25))
-                        Text("粘贴链接").font(.pf(.caption))
+                    // 不用系统 PasteButton：粘贴板空时它会变灰缩小，和旁边三个对不齐。点了才读，iOS 会问一次“允许粘贴”
+                    tool("粘贴链接", systemImage: "doc.on.clipboard") {
+                        if let s = UIPasteboard.general.string { paste([s]) } else { hint = "粘贴板里没有链接" }
                     }
                     tool("我的二维码", systemImage: "qrcode") { showMyCode = true }
                 }
@@ -270,9 +265,9 @@ struct ConfirmInviteView: View {
 
                 group {
                     HStack {
-                        Text("她是你的").font(.pf(.body))
+                        Text("对方是你的").font(.pf(.body))
                         Spacer()
-                        Picker("她是你的", selection: $relation) {
+                        Picker("对方是你的", selection: $relation) {
                             ForEach(Self.relations, id: \.self) { Text($0).tag($0) }
                         }
                         .pickerStyle(.menu)
@@ -282,13 +277,13 @@ struct ConfirmInviteView: View {
                 }
                 .padding(.top, 8)
 
-                Text("怎么守护").font(.pf(.footnote)).foregroundStyle(.secondary)
+                Text("怎么守护").font(.pf(.subheadline)).foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 16)
                     .padding(.top, 6)
                 group {
                     tierRow(.standing, title: "长期互相守护", detail: "家人、室友、好朋友。以后每次回家都能选对方，被选中时全程看到位置。")
-                    Divider().padding(.leading, 52)
+                    Divider().padding(.leading, 52).padding(.trailing, 16)
                     tierRow(.temporary, title: "今晚临时一起", detail: "聚会上刚认识、今晚顺路的人。只在联系不上时看到位置，这次回家结束或 24 小时后自动解除。")
                 }
             }

@@ -121,15 +121,23 @@ struct MyCodeView: View {
 
     @ViewBuilder
     private func stateLine(_ inv: Invite) -> some View {
-        TimelineView(.periodic(from: .now, by: 1)) { ctx in
+        TimelineView(.periodic(from: .now, by: 30)) { ctx in
             switch status?.state ?? "" {
             case "scanned": Text("\(status?.scannedByName ?? "对方")正在看你的名片…").foregroundStyle(Theme.accent)
             case "consumed": Text("\(status?.acceptedByName ?? "对方")已加你为好友").foregroundStyle(.green)
             case "expired", "revoked": Text("这个码失效了，点下面换一个").foregroundStyle(.secondary)
-            default: Text("\(Display.countdown(to: inv.expiresAt, now: ctx.date)) 内有效").foregroundStyle(.secondary).monospacedDigit()
+            default: Text(Self.remaining(until: inv.expiresAt, now: ctx.date)).foregroundStyle(.secondary).monospacedDigit()
             }
         }
         .font(.pf(.subheadline))
+    }
+
+    /// “还剩 23 小时 40 分”：比 23:40:51 好懂，不会被看成一个时刻
+    static func remaining(until due: Date, now: Date) -> String {
+        let s = max(0, Int(due.timeIntervalSince(now)))
+        let h = s / 3600, m = (s % 3600) / 60
+        if h > 0 { return m > 0 ? "还剩 \(h) 小时 \(m) 分有效" : "还剩 \(h) 小时有效" }
+        return m > 0 ? "还剩 \(m) 分钟有效" : "马上过期，点下面换一个"
     }
 
     private func create() async {
