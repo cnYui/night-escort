@@ -123,15 +123,23 @@ final class InviteLinkTests: XCTestCase {
 
     func testParse() {
         XCTAssertEqual(InviteLink.parse("https://ye.example.com/i/AbC_123-xyz0", allowedHosts: hosts), .token("AbC_123-xyz0"))
-        XCTAssertEqual(InviteLink.parse(" 482913 ", allowedHosts: hosts), .code("482913"))
+        XCTAssertEqual(InviteLink.parse("anquanhuijia://i/AbC_123-xyz0", allowedHosts: hosts), .token("AbC_123-xyz0"))
+        // 不再有 6 位邀请码
+        XCTAssertNil(InviteLink.parse(" 482913 ", allowedHosts: hosts))
         XCTAssertNil(InviteLink.parse("https://evil.example.com/i/AbC_123-xyz0", allowedHosts: hosts))
         XCTAssertNil(InviteLink.parse("https://ye.example.com/x/AbC_123-xyz0", allowedHosts: hosts))
+        XCTAssertNil(InviteLink.parse("anquanhuijia://x/AbC_123-xyz0", allowedHosts: hosts))
         XCTAssertNil(InviteLink.parse("WIFI:S:home;T:WPA;P:secret;;", allowedHosts: hosts))
     }
 
-    func testFindCodeInPastedText() {
-        XCTAssertEqual(InviteLink.findCode(in: "小林邀请你守护她，邀请码 482913，24 小时内有效"), "482913")
-        XCTAssertNil(InviteLink.findCode(in: "电话 13800138000"))
+    func testFindLinkInPastedText() {
+        let shared = InviteLink.shareText(inviterName: "小林", kind: .standing, url: "https://ye.example.com/i/AbC_123-xyz0")
+        XCTAssertEqual(InviteLink.find(in: shared, allowedHosts: hosts), .token("AbC_123-xyz0"))
+        // 链接前后紧挨着中文和标点
+        XCTAssertEqual(InviteLink.find(in: "快点这个https://ye.example.com/i/AbC_123-xyz0。谢谢", allowedHosts: hosts), .token("AbC_123-xyz0"))
+        XCTAssertEqual(InviteLink.find(in: "先看 https://other.com/a 再看 https://YE.example.com/i/AbC_123-xyz0", allowedHosts: hosts), .token("AbC_123-xyz0"))
+        XCTAssertNil(InviteLink.find(in: "邀请码 482913", allowedHosts: hosts))
+        XCTAssertNil(InviteLink.find(in: "https://evil.example.com/i/AbC_123-xyz0", allowedHosts: hosts))
     }
 }
 
@@ -232,5 +240,32 @@ final class APIClientTests: XCTestCase {
         XCTAssertEqual(inv.template?.locationScope, .alertOnly)
         let sent = String(data: stub.requests[0].httpBody!, encoding: .utf8)!
         XCTAssertTrue(sent.contains(#""location_scope":"alert_only""#))
+    }
+}
+
+final class ChinaCoordinateTests: XCTestCase {
+    func testShanghaiOffsetMatchesMapKitInChina() {
+        // 人民广场一带：WGS-84 → GCJ-02 往南约 216 米、往东约 430 米
+        let g = ChinaCoordinate.wgsToGcj(lat: 31.2304, lng: 121.4737)
+        XCTAssertEqual(g.lat, 31.228458, accuracy: 1e-5)
+        XCTAssertEqual(g.lng, 121.478223, accuracy: 1e-5)
+    }
+
+    func testRoundTripIsUnderOneMeter() {
+        for (lat, lng) in [(31.2304, 121.4737), (39.9087, 116.3975), (22.5431, 114.0579), (30.5728, 104.0668)] {
+            let g = ChinaCoordinate.wgsToGcj(lat: lat, lng: lng)
+            let w = ChinaCoordinate.gcjToWgs(lat: g.lat, lng: g.lng)
+            XCTAssertEqual(w.lat, lat, accuracy: 1e-6)
+            XCTAssertEqual(w.lng, lng, accuracy: 1e-6)
+        }
+    }
+
+    func testOutsideChinaIsUnchanged() {
+        let tokyo = ChinaCoordinate.wgsToGcj(lat: 35.6762, lng: 139.6503)
+        XCTAssertEqual(tokyo.lat, 35.6762)
+        XCTAssertEqual(tokyo.lng, 139.6503)
+        let sf = ChinaCoordinate.gcjToWgs(lat: 37.7749, lng: -122.4194)
+        XCTAssertEqual(sf.lat, 37.7749)
+        XCTAssertEqual(sf.lng, -122.4194)
     }
 }

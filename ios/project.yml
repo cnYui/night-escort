@@ -23,6 +23,7 @@ targets:
     platform: iOS
     sources:
       - NightEscort
+      - Shared
     dependencies:
       - package: EscortKit
       - target: NightEscortWidgets
@@ -40,6 +41,8 @@ targets:
     info:
       path: NightEscort/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         NEApiBaseURL: $(API_BASE_URL)
         NEInviteHost: $(INVITE_HOST)
@@ -48,10 +51,14 @@ targets:
         UIBackgroundModes: [location, remote-notification]
         NSSupportsLiveActivities: true
         NSSupportsLiveActivitiesFrequentUpdates: true
-        NSLocationWhenInUseUsageDescription: 护航开始后才使用位置，只给这次选中的担保人看；结束就停止。
+        NSLocationWhenInUseUsageDescription: 出发回家后才使用位置，只给这次选中守护你的人看，到家结束就停止。设定家庭地址时也会用一次，把地图定到你附近，不上传。
         NSCameraUsageDescription: 扫描好友的守护邀请二维码。
         NSPhotoLibraryUsageDescription: 从相册里识别邀请二维码。
         LSApplicationQueriesSchemes: [weixin, weixinULAPI]
+        # 邀请落地页“打开「安全回家」”按钮：anquanhuijia://i/<token>（和 EscortKit InviteLink.appScheme、后端 APP_SCHEME 一致）
+        CFBundleURLTypes:
+          - CFBundleURLName: app.nightescort.ios.invite
+            CFBundleURLSchemes: [anquanhuijia]
         ITSAppUsesNonExemptEncryption: false
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
@@ -66,6 +73,7 @@ targets:
     platform: iOS
     sources:
       - NightEscortWidgets
+      - Shared
     dependencies:
       - package: EscortKit
       - sdk: WidgetKit.framework
@@ -73,6 +81,8 @@ targets:
     info:
       path: NightEscortWidgets/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -86,11 +96,14 @@ targets:
     platform: watchOS
     sources:
       - NightEscortWatch
+      - Shared
     dependencies:
       - package: EscortKit
     info:
       path: NightEscortWatch/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         WKApplication: true
         WKCompanionAppBundleIdentifier: app.nightescort.ios

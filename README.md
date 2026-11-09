@@ -39,7 +39,7 @@ TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5432/escort_test npm test
 
 部署到服务器（真机测试和 TestFlight 用）见 [`deploy/README.md`](deploy/README.md)：Docker 跑后端、PostgreSQL、Redis，Caddy 自动 https，每天备份数据库。
 
-接口都在 `/v1` 下，见 `backend/src/http/routes.ts`。实时位置走 WebSocket `/v1/ws`。邀请落地页是 `/i/:token`，没装 App 时显示 TestFlight 链接和 6 位邀请码；`/.well-known/apple-app-site-association` 用于通用链接。
+接口都在 `/v1` 下，见 `backend/src/http/routes.ts`。实时位置走 WebSocket `/v1/ws`。邀请落地页是 `/i/:token`：装了 App 一键打开（`anquanhuijia://i/<token>`），没装时先把链接复制进粘贴板再引导 TestFlight / App Store，装完打开 App 会从粘贴板认出邀请；`/.well-known/apple-app-site-association` 用于通用链接。
 
 ## iOS 和 Apple Watch
 

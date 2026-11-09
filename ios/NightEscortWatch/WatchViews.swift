@@ -2,97 +2,30 @@ import EscortKit
 import SwiftUI
 import WatchKit
 
-// MARK: - 主题：蜜桃薰衣草（深），和 App 图标同一套
+// MARK: - 主题：watchOS 默认的黑底 + 系统蓝；按钮用系统液态玻璃；字体苹方
 
 enum WTheme {
-    static let base = Color(red: 0x15 / 255, green: 0x11 / 255, blue: 0x1F / 255)
-    static let peach = Color(red: 1, green: 0xDA / 255, blue: 0xB9 / 255)
-    static let lavender = Color(red: 0xC7 / 255, green: 0xB8 / 255, blue: 0xEA / 255)
-    static let ink = Color(red: 1, green: 0xF7 / 255, blue: 0xF0 / 255)
-    static let sub = Color(red: 1, green: 0xF7 / 255, blue: 0xF0 / 255).opacity(0.72)
-    static let deep = Color(red: 0x2A / 255, green: 0x1F / 255, blue: 0x3D / 255)
-    static let alertInk = Color(red: 0x1E / 255, green: 0x15 / 255, blue: 0x30 / 255)
-    /// 求救专用的红，只在求救按钮上用
-    static let danger = Color(red: 1, green: 0x6B / 255, blue: 0x7D / 255)
-    static let brand = LinearGradient(colors: [peach, lavender], startPoint: .leading, endPoint: .trailing)
+    /// 手表 App 没有全局强调色，主按钮要显式传系统蓝，否则 watchOS 画成灰色
+    static let accent = Color.blue
+    static let ink = Color.white
+    static let sub = Color.secondary
+    /// 求救和超时专用的红
+    static let danger = Color.red
+    /// watchOS 默认的灰色卡片底
+    static let platter = Color(white: 0.11)
 }
 
-/// 深底 + 左上蜜桃光、右下薰衣草光
-struct WBackground: View {
-    var body: some View {
-        ZStack {
-            WTheme.base
-            RadialGradient(colors: [WTheme.peach.opacity(0.5), .clear], center: UnitPoint(x: 0.15, y: 0.1), startRadius: 0, endRadius: 120)
-            RadialGradient(colors: [WTheme.lavender.opacity(0.55), .clear], center: UnitPoint(x: 0.9, y: 0.92), startRadius: 0, endRadius: 130)
-        }
-        .ignoresSafeArea()
-    }
-}
-
-/// 超时：整屏铺满品牌渐变
-struct WAlertBackground: View {
-    var body: some View {
-        LinearGradient(colors: [WTheme.peach, WTheme.lavender], startPoint: .topLeading, endPoint: .bottomTrailing)
-            .ignoresSafeArea()
-    }
-}
-
-struct WPrimaryButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .heavy, design: .rounded))
-            .foregroundStyle(WTheme.deep)
-            .frame(maxWidth: .infinity, minHeight: 40)
-            .background(WTheme.brand, in: Capsule())
-            .opacity(configuration.isPressed ? 0.75 : 1)
-    }
-}
-
-struct WSoftButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 15, weight: .bold, design: .rounded))
-            .foregroundStyle(WTheme.ink)
-            .frame(maxWidth: .infinity, minHeight: 38)
-            .background(Color.white.opacity(0.14), in: Capsule())
-            .overlay(Capsule().stroke(Color.white.opacity(0.24), lineWidth: 1))
-            .opacity(configuration.isPressed ? 0.7 : 1)
-    }
-}
-
-struct WDarkButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 16, weight: .heavy, design: .rounded))
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity, minHeight: 42)
-            .background(WTheme.alertInk, in: Capsule())
-            .opacity(configuration.isPressed ? 0.8 : 1)
-    }
-}
-
-struct WTextButtonStyle: ButtonStyle {
-    var color: Color = WTheme.sub
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .bold, design: .rounded))
-            .foregroundStyle(color)
-            .frame(maxWidth: .infinity, minHeight: 30)
-            .opacity(configuration.isPressed ? 0.6 : 1)
-    }
-}
-
-/// 立体图标（Assets 里的 Icon*）
+/// 屏幕上方的系统图标（SF Symbols）
 struct WIcon: View {
-    let name: String
-    var size: CGFloat = 50
-    var glow: Color = WTheme.peach.opacity(0.4)
+    let systemName: String
+    var size: CGFloat = 34
+    var color: Color = WTheme.accent
     var body: some View {
-        Image(name)
-            .resizable()
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .shadow(color: glow, radius: 8, y: 4)
+        Image(systemName: systemName)
+            .font(.system(size: size, weight: .medium))
+            .symbolRenderingMode(.hierarchical)
+            .foregroundStyle(color)
+            .frame(height: size + 4)
             .accessibilityHidden(true)
     }
 }
@@ -100,13 +33,55 @@ struct WIcon: View {
 /// 左上角的小标签
 struct WLabel: View {
     let text: String
-    var color: Color = WTheme.peach
+    var color: Color = WTheme.accent
     var dot = false
     var body: some View {
         HStack(spacing: 4) {
             if dot { Circle().fill(color).frame(width: 5, height: 5) }
-            Text(text).font(.system(size: 13, weight: .heavy, design: .rounded)).foregroundStyle(color)
+            Text(text).font(.pf(size: 13, weight: .semibold)).foregroundStyle(color)
         }
+    }
+}
+
+/// 页头：左边小标签，右边图标，放一行，省出高度让主按钮第一屏就能看全
+struct WHeader: View {
+    let text: String
+    var color: Color = WTheme.accent
+    var dot = false
+    let systemName: String
+    var iconColor: Color = WTheme.accent
+    var body: some View {
+        HStack(alignment: .center) {
+            WLabel(text: text, color: color, dot: dot)
+            Spacer(minLength: 0)
+            WIcon(systemName: systemName, size: 22, color: iconColor)
+        }
+    }
+}
+
+extension View {
+    /// 页面内容：靠左铺满，两侧留边
+    func wPage() -> some View {
+        self.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 8)
+    }
+}
+
+extension Text {
+    /// 手表大标题
+    func wTitle(_ size: CGFloat = 20) -> some View {
+        self.font(.pf(size: size, weight: .semibold)).foregroundStyle(WTheme.ink)
+    }
+
+    /// 手表说明文字
+    func wSub() -> some View {
+        self.font(.pf(size: 13)).foregroundStyle(WTheme.sub)
+    }
+}
+
+extension Text {
+    /// 手表按钮上的字：苹方 Semibold，撑满一行
+    func wButton() -> some View {
+        self.font(.pf(size: 16, weight: .semibold)).frame(maxWidth: .infinity)
     }
 }
 
@@ -115,27 +90,21 @@ struct WLabel: View {
 struct WatchRootView: View {
     @EnvironmentObject var model: WatchModel
 
-    private var isAlerting: Bool { model.signedIn && model.escort?.status == .alerting }
-
     var body: some View {
-        ZStack {
-            if isAlerting { WAlertBackground() } else { WBackground() }
-            Group {
-                if !model.signedIn {
-                    SignInView()
-                } else if let e = model.escort, e.status != .ended {
-                    switch e.status {
-                    case .alerting: AlertingView(escort: e)
-                    case .paused: PausedView(escort: e)
-                    default: EscortRunningView(escort: e)
-                    }
-                } else {
-                    IdleView()
+        Group {
+            if !model.signedIn {
+                SignInView()
+            } else if let e = model.escort, e.status != .ended {
+                switch e.status {
+                case .alerting: AlertingView(escort: e)
+                case .paused: PausedView(escort: e)
+                default: EscortRunningView(escort: e)
                 }
+            } else {
+                IdleView()
             }
-            .padding(.horizontal, 6)
         }
-        .fontDesign(.rounded)
+        .font(.pf(.body))
         .task { await model.refresh() }
         .sheet(item: Binding(get: { model.askHome.map(HomeAsk.init) }, set: { if $0 == nil { model.askHome = nil } })) { ask in
             HomeAskView(place: ask.place).environmentObject(model)
@@ -159,19 +128,14 @@ struct SignInView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "安全回家")
-                WIcon(name: "IconPhone", size: 46)
-                Text("在 iPhone 上\n登录一下")
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .foregroundStyle(WTheme.ink)
-                Text("登录后手表会自动同步")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(WTheme.sub)
-                Button("重试") { model.requestTokensFromPhone() }
-                    .buttonStyle(WSoftButtonStyle())
+                WHeader(text: "安全回家", systemName: "iphone")
+                Text("在 iPhone 上\n登录一下").wTitle()
+                Text("登录后手表会自动同步").wSub()
+                Button { model.requestTokensFromPhone() } label: { Text("重试").wButton() }
+                    .glassButton()
                     .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
     }
 }
@@ -180,49 +144,46 @@ struct SignInView: View {
 
 struct IdleView: View {
     @EnvironmentObject var model: WatchModel
-    @State private var pressing = false
+    @State private var hint = false
 
     var body: some View {
         ScrollView {
-        VStack(alignment: .leading, spacing: 4) {
-            WLabel(text: "安全回家")
-            WIcon(name: "IconMoon", size: 48)
-            Text("今晚\n平安到家")
-                .font(.system(size: 22, weight: .heavy, design: .rounded))
-                .foregroundStyle(WTheme.ink)
-            Text("用手机上的默认担保人")
-                .font(.system(size: 12, weight: .semibold, design: .rounded))
-                .foregroundStyle(WTheme.sub)
-            HStack(spacing: 6) {
-                if model.busy {
-                    ProgressView().tint(WTheme.deep)
-                } else {
-                    Image(systemName: "play.fill").font(.system(size: 12, weight: .bold))
-                    Text("长按开始")
+            VStack(alignment: .leading, spacing: 6) {
+                WHeader(text: "安全回家", systemName: "moon.stars.fill")
+                Text("今晚平安到家").wTitle(20)
+                Text(hint ? "按住 1 秒才会开始" : "用手机上的默认担保人").wSub()
+                Button {
+                    // 轻点不开始，只提示要按住，防止抬手误触
+                    hint = true
+                    WKInterfaceDevice.current().play(.click)
+                } label: {
+                    Group {
+                        if model.busy {
+                            ProgressView()
+                        } else {
+                            Label("长按开始", systemImage: "play.fill")
+                        }
+                    }
+                    .font(.pf(size: 16, weight: .semibold))
+                    .frame(maxWidth: .infinity)
                 }
+                .glassProminentButton(tint: WTheme.accent)
+                .simultaneousGesture(LongPressGesture(minimumDuration: 1).onEnded { _ in
+                    Task { await model.start() }
+                })
+                .disabled(model.busy)
+                .accessibilityLabel("开始护航")
+                .accessibilityHint("长按一秒开始")
+                .accessibilityAction(named: "开始护航") { Task { await model.start() } }
+                .padding(.top, 4)
+                WSOSHoldButton()
             }
-            .font(.system(size: 16, weight: .heavy, design: .rounded))
-            .foregroundStyle(WTheme.deep)
-            .frame(maxWidth: .infinity, minHeight: 40)
-            .background(WTheme.brand, in: Capsule())
-            .scaleEffect(pressing ? 0.95 : 1)
-            .animation(.easeOut(duration: 0.15), value: pressing)
-            .onLongPressGesture(minimumDuration: 1.0, pressing: { pressing = $0 }) {
-                Task { await model.start() }
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityAddTraits(.isButton)
-            .accessibilityLabel("开始护航")
-            .accessibilityAction { Task { await model.start() } }
-            .padding(.top, 4)
-            WSOSHoldButton()
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
     }
 }
 
-/// 一键求救：长按 2 秒，进度条走满就发出，所有担保人立刻响铃
+/// 一键求救：长按 2 秒，红色进度走满就发出，所有担保人立刻响铃
 struct WSOSHoldButton: View {
     @EnvironmentObject var model: WatchModel
     @State private var progress: CGFloat = 0
@@ -230,39 +191,36 @@ struct WSOSHoldButton: View {
     static let holdSeconds: Double = 2
 
     var body: some View {
-        HStack(spacing: 5) {
-            Image(systemName: "sos").font(.system(size: 13, weight: .heavy))
-            Text("长按 2 秒求救")
-        }
-        .font(.system(size: 14, weight: .heavy, design: .rounded))
-        .foregroundStyle(WTheme.danger)
-        .frame(maxWidth: .infinity, minHeight: 38)
-        .background(alignment: .leading) {
-            GeometryReader { g in
-                Rectangle().fill(WTheme.danger.opacity(0.35)).frame(width: max(0, g.size.width * progress))
+        Label("长按 2 秒求救", systemImage: "sos")
+            .font(.pf(size: 15, weight: .semibold))
+            .foregroundStyle(WTheme.danger)
+            .frame(maxWidth: .infinity, minHeight: 44)
+            .background(alignment: .leading) {
+                GeometryReader { g in
+                    Rectangle().fill(WTheme.danger.opacity(0.35)).frame(width: max(0, g.size.width * progress))
+                }
             }
-        }
-        .background(WTheme.danger.opacity(0.14))
-        .clipShape(Capsule())
-        .overlay(Capsule().stroke(WTheme.danger.opacity(0.6), lineWidth: 1))
-        .onLongPressGesture(minimumDuration: Self.holdSeconds, maximumDistance: 30) {
-            fired = true
-            fire()
-        } onPressingChanged: { pressing in
-            if pressing {
-                fired = false
-                WKInterfaceDevice.current().play(.click)
-                withAnimation(.linear(duration: Self.holdSeconds)) { progress = 1 }
-            } else if !fired {
-                withAnimation(.easeOut(duration: 0.2)) { progress = 0 }
+            .clipShape(Capsule())
+            .glassBackground(in: Capsule(), tint: WTheme.danger)
+            .contentShape(Capsule())
+            .onLongPressGesture(minimumDuration: Self.holdSeconds, maximumDistance: 30) {
+                fired = true
+                fire()
+            } onPressingChanged: { pressing in
+                if pressing {
+                    fired = false
+                    WKInterfaceDevice.current().play(.click)
+                    withAnimation(.linear(duration: Self.holdSeconds)) { progress = 1 }
+                } else if !fired {
+                    withAnimation(.easeOut(duration: 0.2)) { progress = 0 }
+                }
             }
-        }
-        .disabled(model.busy)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("紧急求救")
-        .accessibilityHint("长按两秒，立刻通知你所有的担保人")
-        .accessibilityAddTraits(.isButton)
-        .accessibilityAction { fire() }
+            .disabled(model.busy)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("紧急求救")
+            .accessibilityHint("长按两秒，立刻通知你所有的担保人")
+            .accessibilityAddTraits(.isButton)
+            .accessibilityAction { fire() }
     }
 
     private func fire() {
@@ -285,45 +243,49 @@ struct EscortRunningView: View {
             VStack(alignment: .leading, spacing: 6) {
                 WLabel(text: "护航中", dot: true)
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
-                    VStack(alignment: .leading, spacing: 6) {
+                    VStack(alignment: .leading, spacing: 8) {
                         HStack(alignment: .center) {
                             VStack(alignment: .leading, spacing: 0) {
                                 if let due = escort.nextDueAt {
                                     Text(Display.countdown(to: due, now: ctx.date))
-                                        .font(.system(size: 34, weight: .heavy, design: .rounded))
+                                        .font(.pf(size: 34, weight: .semibold))
                                         .monospacedDigit()
                                         .foregroundStyle(WTheme.ink)
-                                    Text(due < ctx.date ? "到签到时间了" : "后签到")
-                                        .font(.system(size: 12, weight: .heavy, design: .rounded))
-                                        .foregroundStyle(WTheme.peach)
+                                    Text(due < ctx.date ? "到签到时间了" : "后签到 · \(Display.hhmm(due))").wSub()
                                 } else {
-                                    Text("护航中")
-                                        .font(.system(size: 24, weight: .heavy, design: .rounded))
-                                        .foregroundStyle(WTheme.ink)
+                                    Text("护航中").wTitle(24)
                                 }
                             }
                             Spacer(minLength: 0)
-                            WIcon(name: "IconWalk", size: 44)
+                            WIcon(systemName: "figure.walk", size: 30)
                         }
-                        ProgressBar(value: progress(now: ctx.date))
-                        HStack(spacing: 6) {
-                            StatTile(value: Display.countdown(to: ctx.date, now: escort.startedAt), label: "已护航")
-                            StatTile(value: "\(escort.guardians.count) 人", label: "在守")
-                        }
+                        ProgressView(value: progress(now: ctx.date))
+                            .tint(WTheme.accent)
+                            .accessibilityHidden(true)
                     }
                 }
-                Button("我没事") { Task { await model.checkin() } }
-                    .buttonStyle(WPrimaryButtonStyle())
+                Button { Task { await model.checkin() } } label: { Text("我没事").wButton() }
+                    .glassProminentButton(tint: WTheme.accent)
                     .disabled(model.busy)
                     .padding(.top, 2)
-                Button("到了，结束") { Task { await model.checkin(.arrived) } }
-                    .buttonStyle(WSoftButtonStyle())
+                Button { Task { await model.checkin(.arrived) } } label: { Text("到了，结束").wButton() }
+                    .glassButton()
                     .disabled(model.busy)
-                Button("结束护航") { confirmEnd = true }
-                    .buttonStyle(WTextButtonStyle())
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    HStack(spacing: 6) {
+                        StatTile(value: Display.countdown(to: ctx.date, now: escort.startedAt), label: "已护航")
+                        StatTile(value: "\(escort.guardians.count) 人", label: "在守")
+                    }
+                }
+                Button { confirmEnd = true } label: {
+                    Text("结束护航").font(.pf(size: 15)).frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(WTheme.sub)
+                .padding(.vertical, 4)
                 WSOSHoldButton()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
         .confirmationDialog("结束这次护航？", isPresented: $confirmEnd) {
             Button("结束", role: .destructive) { Task { await model.end() } }
@@ -339,40 +301,26 @@ struct EscortRunningView: View {
     }
 }
 
-struct ProgressBar: View {
-    let value: Double
-    var body: some View {
-        GeometryReader { geo in
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.white.opacity(0.15))
-                Capsule().fill(WTheme.brand).frame(width: max(6, geo.size.width * value))
-            }
-        }
-        .frame(height: 5)
-        .accessibilityHidden(true)
-    }
-}
-
+/// 小卡片：watchOS 默认的灰色圆角底
 struct StatTile: View {
     let value: String
     let label: String
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text(value)
-                .font(.system(size: 16, weight: .heavy, design: .rounded))
+                .font(.pf(size: 16, weight: .semibold))
                 .monospacedDigit()
                 .foregroundStyle(WTheme.ink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
             Text(label)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
+                .font(.pf(size: 11))
                 .foregroundStyle(WTheme.sub)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
-        .background(Color.white.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.white.opacity(0.22), lineWidth: 1))
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(WTheme.platter, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
     }
 }
 
@@ -386,20 +334,15 @@ struct PausedView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "已暂停", color: WTheme.sub, dot: true)
-                WIcon(name: "IconPause", size: 46)
-                Text(escort.pausedUntil.map { "暂停到\n\(Display.hhmm($0))" } ?? "已暂停")
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .foregroundStyle(WTheme.ink)
-                Text("在别处过夜 · 担保人已知道")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(WTheme.sub)
-                Button("结束护航") { confirmEnd = true }
-                    .buttonStyle(WSoftButtonStyle())
+                WHeader(text: "已暂停", color: WTheme.sub, dot: true, systemName: "pause.circle.fill")
+                Text(escort.pausedUntil.map { "暂停到 \(Display.hhmm($0))" } ?? "已暂停").wTitle()
+                Text("在别处过夜 · 担保人已知道").wSub()
+                Button { confirmEnd = true } label: { Text("结束护航").wButton() }
+                    .glassButton()
                     .disabled(model.busy)
                     .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
         .confirmationDialog("结束这次护航？", isPresented: $confirmEnd) {
             Button("结束", role: .destructive) { Task { await model.end() } }
@@ -413,36 +356,33 @@ struct AlertingView: View {
     @EnvironmentObject var model: WatchModel
     let escort: Escort
 
+    private var isSOS: Bool { escort.incident?.isSOS == true }
+
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 4) {
-                WLabel(text: escort.incident?.isSOS == true ? "已发出求救" : "需要你回应", color: WTheme.alertInk)
-                WIcon(name: "IconBell", size: 46, glow: Color.black.opacity(0.25))
+            VStack(alignment: .leading, spacing: 6) {
+                WHeader(text: isSOS ? "已发出求救" : "需要你回应", color: WTheme.danger, dot: true, systemName: isSOS ? "sos.circle.fill" : "bell.fill", iconColor: WTheme.danger)
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     if let due = escort.nextDueAt, due < ctx.date {
                         Text("已超时 \(Display.countdown(to: ctx.date, now: due))")
-                            .font(.system(size: 12, weight: .bold, design: .rounded))
+                            .font(.pf(size: 13, weight: .medium))
                             .monospacedDigit()
-                            .foregroundStyle(WTheme.alertInk)
+                            .foregroundStyle(WTheme.danger)
                     }
                 }
-                Text("担保人正在\n联系你")
-                    .font(.system(size: 21, weight: .heavy, design: .rounded))
-                    .foregroundStyle(WTheme.alertInk)
-                if escort.incident?.isSOS == true {
-                    Text("安全了就点“我没事”解除")
-                        .font(.system(size: 12, weight: .semibold, design: .rounded))
-                        .foregroundStyle(WTheme.alertInk.opacity(0.75))
+                Text("担保人正在联系你").wTitle(20)
+                if isSOS {
+                    Text("安全了就点“我没事”解除").wSub()
                 }
-                Button("我没事") { Task { await model.checkin() } }
-                    .buttonStyle(WDarkButtonStyle())
+                Button { Task { await model.checkin() } } label: { Text("我没事").wButton() }
+                    .glassProminentButton(tint: WTheme.danger)
                     .disabled(model.busy)
                     .padding(.top, 4)
-                Button("到了，结束") { Task { await model.checkin(.arrived) } }
-                    .buttonStyle(WTextButtonStyle(color: WTheme.alertInk))
+                Button { Task { await model.checkin(.arrived) } } label: { Text("到了，结束").wButton() }
+                    .glassButton()
                     .disabled(model.busy)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
     }
 }
@@ -456,25 +396,18 @@ struct HomeAskView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "到家了？")
-                WIcon(name: "IconHouse", size: 46)
-                Text("检测到你\n已经到\(place)")
-                    .font(.system(size: 20, weight: .heavy, design: .rounded))
-                    .foregroundStyle(WTheme.ink)
-                Text("安全到家了吗？")
-                    .font(.system(size: 12, weight: .semibold, design: .rounded))
-                    .foregroundStyle(WTheme.sub)
-                Button("到了，结束护航") { Task { await model.answerHome(arrived: true) } }
-                    .buttonStyle(WPrimaryButtonStyle())
+                WHeader(text: "到家了？", systemName: "house.fill")
+                Text("检测到你\n已经到\(place)").wTitle()
+                Text("安全到家了吗？").wSub()
+                Button { Task { await model.answerHome(arrived: true) } } label: { Text("到了，结束护航").wButton() }
+                    .glassProminentButton(tint: WTheme.accent)
                     .padding(.top, 4)
-                Button("还没，继续") { Task { await model.answerHome(arrived: false) } }
-                    .buttonStyle(WSoftButtonStyle())
+                Button { Task { await model.answerHome(arrived: false) } } label: { Text("还没，继续").wButton() }
+                    .glassButton()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 6)
+            .wPage()
         }
-        .background(WBackground())
-        .fontDesign(.rounded)
+        .font(.pf(.body))
     }
 }
 
@@ -487,19 +420,27 @@ struct MessageView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "提示")
-                WIcon(name: "IconInfo", size: 46)
-                Text(text)
-                    .font(.system(size: 17, weight: .heavy, design: .rounded))
-                    .foregroundStyle(WTheme.ink)
-                Button("好") { model.message = nil }
-                    .buttonStyle(WSoftButtonStyle())
+                if model.offerEmergencyCall {
+                    WHeader(text: "求救没发出去", color: WTheme.danger, systemName: "exclamationmark.triangle.fill", iconColor: WTheme.danger)
+                } else {
+                    WHeader(text: "提示", systemName: "info.circle.fill")
+                }
+                Text(text).wTitle(17)
+                if model.offerEmergencyCall {
+                    Button { model.callEmergency() } label: {
+                        Label("拨打 110", systemImage: "phone.fill")
+                            .font(.pf(size: 16, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .glassProminentButton(tint: WTheme.danger)
                     .padding(.top, 4)
+                }
+                Button { model.message = nil } label: { Text(model.offerEmergencyCall ? "关闭" : "好").wButton() }
+                    .glassButton()
+                    .padding(.top, model.offerEmergencyCall ? 0 : 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 6)
+            .wPage()
         }
-        .background(WBackground())
-        .fontDesign(.rounded)
+        .font(.pf(.body))
     }
 }

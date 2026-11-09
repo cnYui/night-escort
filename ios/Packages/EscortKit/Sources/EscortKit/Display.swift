@@ -23,8 +23,8 @@ public enum Display {
         case .active:
             switch e.stage {
             case .waiting:
-                if let due = e.nextDueAt { return "下次签到 \(hhmm(due))" }
-                return "护航中"
+                if let due = e.nextDueAt { return "\(hhmm(due)) 前报一次平安" }
+                return "回家路上"
             case .due: return "到签到时间了"
             case .reminded: return "还没签到，5 分钟内不回应会请担保人联系你"
             case .escalated: return "担保人正在联系你"
@@ -50,8 +50,8 @@ public enum Display {
             }
             return "联系不上，请尝试联系她"
         case .active:
-            if let due = c.nextDueAt { return "护航中，下次签到 \(hhmm(due))" }
-            return "护航中"
+            if let due = c.nextDueAt { return "在回家路上，\(hhmm(due)) 前报平安" }
+            return "在回家路上"
         case .paused:
             if let u = c.pausedUntil { return "她在别处过夜，暂停到 \(hhmm(u))" }
             return "已暂停"
@@ -60,7 +60,7 @@ public enum Display {
             case "home": return "已安全到家"
             case "elsewhere": return "在别处过夜，已结束"
             case "by_guardian": return "已由担保人代为结束"
-            default: return "护航已结束"
+            default: return "已结束"
             }
         }
     }
