@@ -42,7 +42,7 @@ struct GraphView: View {
     /// 相邻两个格子中心的距离
     private static let spacing: CGFloat = 100
     private static let meSize: CGFloat = 84
-    private static let zoomRange: ClosedRange<CGFloat> = 0.6...1.8
+    private static let zoomRange: ClosedRange<CGFloat> = 0.75...1.8
 
     @State private var zoom: CGFloat = GraphView.initialZoom
     @GestureState private var pinch: CGFloat = 1
@@ -66,15 +66,15 @@ struct GraphView: View {
     private func compactRow(_ people: [Connection], size: CGSize) -> some View {
         HStack(alignment: .top, spacing: 6) {
             ForEach(people) { c in
-                HexBubble(connection: c, chosen: inEscort.contains(c.id), diameter: HomePeople.bubbleSize(c) * 0.8, showName: true)
+                HexBubble(connection: c, chosen: inEscort.contains(c.id), diameter: 52, showName: true)
                     .frame(maxWidth: .infinity)
                     .onTapGesture { onTap(c) }
                     .contextMenu { detailButton(c) }
             }
         }
         .padding(.horizontal)
-        .padding(.top, 12)
-        .frame(width: size.width, height: size.height, alignment: .top)
+        .padding(.bottom, 16)
+        .frame(width: size.width, height: size.height)
     }
 
     private func detailButton(_ c: Connection) -> some View {
@@ -122,22 +122,18 @@ struct GraphView: View {
 
             let meAt = place(cells[0])
             if meAt.scale > 0.05 {
-                VStack(spacing: 4) {
-                    AvatarView(name: me, size: Self.meSize * z * meAt.scale, tint: Theme.accent)
-                        .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 3))
-                        .shadow(color: Theme.accent.opacity(0.25), radius: 12, y: 5)
-                    if meAt.scale > 0.75 && z > 0.75 {
-                        Text("我").font(.pf(.footnote, weight: .semibold))
-                    }
-                }
-                .offset(y: meAt.scale > 0.75 && z > 0.75 ? 10 : 0)
-                .position(meAt.point)
+                // 自己用系统蓝，不再额外写「我」，免得和周围的名字挤在一起
+                AvatarView(name: me, size: Self.meSize * z * meAt.scale, tint: Theme.accent)
+                    .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 3))
+                    .shadow(color: Theme.accent.opacity(0.25), radius: 12, y: 5)
+                    .accessibilityLabel("我")
+                    .position(meAt.point)
             }
 
             if gone > 0 && !moved {
                 Text("还有 \(gone) 人超过 35 天没一起回家，搜索能找到")
                     .font(.pf(.caption)).foregroundStyle(.secondary)
-                    .position(x: center.x, y: size.height - 10)
+                    .position(x: center.x, y: size.height - 26)
             }
         }
         .frame(width: size.width, height: size.height)
@@ -193,13 +189,21 @@ struct GraphView: View {
         var axial: [(Int, Int)] = [(0, 0)]
         var k = 1
         while axial.count < count {
+            var ring: [(Int, Int)] = []
             var q = dirs[4].0 * k, r = dirs[4].1 * k
             for side in 0..<6 {
                 for _ in 0..<k {
-                    axial.append((q, r))
+                    ring.append((q, r))
                     q += dirs[side].0
                     r += dirs[side].1
                 }
+            }
+            // 最外圈坐不满时均匀隔开放，整团才不会偏向一边
+            let need = count - axial.count
+            if need < ring.count {
+                axial += (0..<need).map { ring[$0 * ring.count / need] }
+            } else {
+                axial += ring
             }
             k += 1
         }
@@ -222,8 +226,10 @@ struct GraphView: View {
         let n = sqrt((dx / rx) * (dx / rx) + (dy / ry) * (dy / ry))
         let inner: CGFloat = 0.62
         guard n > inner else { return (p, 1) }
-        let t = min((n - inner) / 0.5, 1)
-        let scale = max(0, 1 - t)
+        // 出了可见范围就不画；在范围里最小缩到 45%，名字看不清但还点得中
+        let t = (n - inner) / 0.5
+        guard t < 1 else { return (p, 0) }
+        let scale = 1 - t * 0.55
         let squeezed = (inner + (n - inner) * 0.7) / n
         return (CGPoint(x: center.x + dx * squeezed, y: center.y + dy * squeezed), scale)
     }
@@ -248,7 +254,7 @@ private struct HexBubble: View {
                             .background(Theme.accent, in: Circle())
                             .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
                             .foregroundStyle(.white)
-                            .offset(x: 3, y: 3)
+                            .offset(x: 10 - diameter * 0.146, y: 10 - diameter * 0.146)
                     }
                 }
                 .overlay(alignment: .topTrailing) {
@@ -258,7 +264,7 @@ private struct HexBubble: View {
                             .background(Theme.temporary, in: Circle())
                             .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
                             .foregroundStyle(.white)
-                            .offset(x: 3, y: -3)
+                            .offset(x: 10 - diameter * 0.146, y: diameter * 0.146 - 10)
                     }
                 }
             if showName {

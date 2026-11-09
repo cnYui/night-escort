@@ -26,6 +26,7 @@ struct HomeView: View {
                             .frame(width: 24, height: 24)
                     }
                     .glassButton()
+                    .buttonBorderShape(.circle)
                     .controlSize(.large)
                     .accessibilityLabel("添加联系人")
                 }
