@@ -43,7 +43,7 @@ struct SettingsView: View {
                 }
                 Section {
                     NavigationLink { WhoCanSeeMeView() } label: { Label("谁能看到我", systemImage: "eye") }
-                    NavigationLink { HomePlacesView() } label: { Label("我的家", systemImage: "house") }
+                    NavigationLink { HomePlacesView() } label: { Label("设定家庭地址", systemImage: "house") }
                 }
                 Section {
                     NotificationStatusRow()
@@ -169,7 +169,7 @@ struct GuardingWhoView: View {
     }
 }
 
-/// “我的家”（6.5）：最多两处，只存这台 iPhone 和手表，不上传
+/// 「设定家庭地址」（6.5，原“我的家”）：最多两处，只存这台 iPhone 和手表，不上传
 struct HomePlacesView: View {
     @EnvironmentObject var model: AppModel
     @State private var places: [HomePlace] = HomePlaceStore.load()
@@ -198,7 +198,7 @@ struct HomePlacesView: View {
                 Text("家的位置只存在这台 iPhone 和你的手表上，不会上传，守护你的人也看不到。换手机后要重新设。到家时只会问你一句“安全到家了吗”，不会替你自动结束。")
             }
         }
-        .navigationTitle("我的家")
+        .navigationTitle("家庭地址")
         .sheet(isPresented: $adding) {
             PlacePicker(title: "添加地点", initial: nil) { p in
                 if let p { places.append(p); save() }

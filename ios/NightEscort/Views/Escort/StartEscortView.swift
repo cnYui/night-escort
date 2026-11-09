@@ -23,7 +23,7 @@ struct StartEscortView: View {
 
     enum Destination: Hashable { case home, other }
 
-    /// 从「设置家的位置」返回时要重新读一次
+    /// 从「设定家庭地址」返回时要重新读一次
     @State private var homePlaces: [HomePlace] = HomePlaceStore.load()
 
     var body: some View {
@@ -86,7 +86,7 @@ struct StartEscortView: View {
                         // 家还没设：不假装有个「家」可选，直接给设置入口
                         Section {
                             NavigationLink { HomePlacesView() } label: {
-                                Label("设置家的位置", systemImage: "house")
+                                Label("设定家庭地址", systemImage: "house")
                             }
                             Button { pickingPlace = true } label: {
                                 LabeledContent("今晚去别的地方", value: tonightPlace?.name ?? "")

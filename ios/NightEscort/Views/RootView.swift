@@ -58,7 +58,7 @@ struct RootView: View {
             NavigationStack { MyCodeView() }
                 .environmentObject(model)
         }
-        // 地图选点：和「我的家」里点「添加地点」是同一个页面。界面出来以后再弹，启动那一刻就弹可能被系统丢掉
+        // 地图选点：和「设定家庭地址」里点「添加地点」是同一个页面。界面出来以后再弹，启动那一刻就弹可能被系统丢掉
         .sheet(isPresented: $demoPickPlace) {
             PlacePicker(title: "添加地点", initial: nil) { _ in }
         }

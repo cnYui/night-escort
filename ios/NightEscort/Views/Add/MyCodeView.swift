@@ -9,7 +9,6 @@ import SwiftUI
  */
 struct MyCodeView: View {
     @EnvironmentObject var model: AppModel
-    @Environment(\.openURL) private var openURL
 
     @State private var invite: Invite?
     @State private var status: Invite?
@@ -52,7 +51,6 @@ struct MyCodeView: View {
             if let inv = invite {
                 QRCodeImage(text: inv.url)
                     .frame(width: 220, height: 220)
-                    .overlay(AvatarView(name: myName, size: 44).background(Circle().fill(.white).padding(-4)))
                     .padding(.vertical, 4)
                 Text("让朋友打开「安全回家」，点首页右上角 + 扫一扫").font(.pf(.footnote)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -68,16 +66,12 @@ struct MyCodeView: View {
 
     private func actions(_ inv: Invite) -> some View {
         VStack(spacing: 10) {
-            Button { sendToWeChat(inv) } label: {
-                Label("发给微信好友", systemImage: "paperplane.fill").font(.pf(.headline)).frame(maxWidth: .infinity)
-            }
-            .glassProminentButton()
-            .controlSize(.large)
             HStack(spacing: 10) {
+                // 复制以后到微信里粘贴发给朋友；朋友复制了再打开 App 也能认出来
                 Button { copy(inv) } label: {
-                    Label("复制链接", systemImage: "link").font(.pf(.subheadline, weight: .medium)).frame(maxWidth: .infinity)
+                    Label("复制链接", systemImage: "link").font(.pf(.subheadline, weight: .semibold)).frame(maxWidth: .infinity)
                 }
-                .glassButton()
+                .glassProminentButton()
                 ShareLink(item: shareText(inv)) {
                     Label("其他方式", systemImage: "square.and.arrow.up").font(.pf(.subheadline, weight: .medium)).frame(maxWidth: .infinity)
                 }
@@ -102,21 +96,7 @@ struct MyCodeView: View {
 
     private func copy(_ inv: Invite) {
         model.copyOwnInvite(shareText(inv), token: inv.token)
-        model.toast = "已复制，发给对方即可"
-    }
-
-    /**
-     一键发到微信：把“说明 + 链接”放进粘贴板，直接跳到微信，选好友粘贴发送。
-     没装微信就只复制，提示用“其他方式”发。（接入微信 OpenSDK 后可以改成直接弹微信的好友选择，需要开放平台 AppID）
-     */
-    private func sendToWeChat(_ inv: Invite) {
-        model.copyOwnInvite(shareText(inv), token: inv.token)
-        if let wx = URL(string: "weixin://"), UIApplication.shared.canOpenURL(wx) {
-            model.toast = "邀请已复制，到微信里粘贴给好友"
-            openURL(wx)
-        } else {
-            model.toast = "没装微信，邀请已复制，可以用其他方式发给对方"
-        }
+        model.toast = "已复制，到微信里粘贴发给朋友"
     }
 
     @ViewBuilder
@@ -185,7 +165,7 @@ struct QRCodeImage: View {
     static func make(_ text: String) -> UIImage? {
         let f = CIFilter.qrCodeGenerator()
         f.message = Data(text.utf8)
-        f.correctionLevel = "H" // 中间放头像，用最高纠错
+        f.correctionLevel = "M" // 中间不放头像，码更疏、夜里更好扫
         guard let out = f.outputImage?.transformed(by: CGAffineTransform(scaleX: 10, y: 10)),
               let cg = CIContext().createCGImage(out, from: out.extent) else { return nil }
         return UIImage(cgImage: cg)

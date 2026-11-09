@@ -7,7 +7,8 @@ import Vision
 import VisionKit
 
 /**
- 扫码页（8.3）：首页「+」直接打开这里。全屏取景，系统 VisionKit 识别；底部手电筒、从相册选、粘贴邀请链接、我的二维码。
+ 扫码页（8.3）：首页「+」直接打开这里。全屏取景，系统 VisionKit 识别；底部手电筒、从相册选、我的二维码三个按钮居中。
+ 别人发来的链接不用在这里粘贴：点链接直接进 App，或者复制后回到 App 会自动认出来。
  识别到本 App 的码轻震一下弹对方的名片；其他二维码只提示“这不是「安全回家」的二维码”，不跳转、不打开链接。
  */
 struct ScannerScreen: View {
@@ -62,15 +63,12 @@ struct ScannerScreen: View {
                 if let hint {
                     Text(hint).font(.pf(.subheadline)).padding(.horizontal, 14).padding(.vertical, 8).background(.black.opacity(0.6), in: Capsule())
                 }
-                HStack(alignment: .top, spacing: 28) {
+                HStack(alignment: .top, spacing: 44) {
                     tool("手电筒", systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill") { toggleTorch() }
                     PhotosPicker(selection: $photo, matching: .images) { toolLabel("相册", systemImage: "photo") }
-                    // 不用系统 PasteButton：粘贴板空时它会变灰缩小，和旁边三个对不齐。点了才读，iOS 会问一次“允许粘贴”
-                    tool("粘贴链接", systemImage: "doc.on.clipboard") {
-                        if let s = UIPasteboard.general.string { paste([s]) } else { hint = "粘贴板里没有链接" }
-                    }
                     tool("我的二维码", systemImage: "qrcode") { showMyCode = true }
                 }
+                .frame(maxWidth: .infinity)
                 .padding(.vertical, 24)
             }
             .foregroundStyle(.white)
@@ -106,7 +104,7 @@ struct ScannerScreen: View {
                     if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                 }
             }
-            Text("也可以让朋友把链接发给你，复制后点下面的粘贴").font(.pf(.footnote)).foregroundStyle(.white.opacity(0.7))
+            Text("也可以让朋友把链接发到微信，点开链接就能加").font(.pf(.footnote)).foregroundStyle(.white.opacity(0.7))
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 32)
@@ -121,14 +119,6 @@ struct ScannerScreen: View {
             Image(systemName: systemImage).font(.system(size: 20, weight: .medium)).frame(width: 48, height: 48)
                 .glassBackground(in: Circle())
             Text(title).font(.pf(.caption))
-        }
-    }
-
-    private func paste(_ strings: [String]) {
-        if let ref = strings.lazy.compactMap({ InviteLink.find(in: $0, allowedHosts: AppConfig.inviteHosts) }).first {
-            onFound(ref)
-        } else {
-            hint = "粘贴板里没有「安全回家」的邀请链接"
         }
     }
 
@@ -210,8 +200,12 @@ struct ConfirmInviteView: View {
     @State private var relation = "朋友"
     @State private var tier: InviteKind = .standing
     @State private var error: String?
+    /// 身份选项可以自己新增、删除，存在这台手机上，下次加人还在
+    @AppStorage("relationOptions") private var relationsRaw = RelationOptions.defaults.joined(separator: "\n")
+    @State private var addingRelation = false
+    @State private var newRelation = ""
 
-    static let relations = ["家人", "女儿", "妈妈", "爸爸", "伴侣", "室友", "朋友", "同事"]
+    private var relations: [String] { relationsRaw.split(separator: "\n").map(String.init) }
 
     var body: some View {
         Group {
@@ -248,6 +242,8 @@ struct ConfirmInviteView: View {
         preview = p
         // 当面扫的临时码默认选“今晚临时”，其余默认长期
         tier = p.kind ?? .standing
+        // “朋友”被删掉了就选第一个
+        if !relations.contains(relation) { relation = relations.first ?? "朋友" }
     }
 
     private func content(_ p: InvitePreview) -> some View {
@@ -267,13 +263,10 @@ struct ConfirmInviteView: View {
                     HStack {
                         Text("对方是你的").font(.pf(.body))
                         Spacer()
-                        Picker("对方是你的", selection: $relation) {
-                            ForEach(Self.relations, id: \.self) { Text($0).tag($0) }
-                        }
-                        .pickerStyle(.menu)
+                        relationMenu
                     }
                     .padding(.horizontal, 16)
-                    .padding(.vertical, 6)
+                    .padding(.vertical, 12)
                 }
                 .padding(.top, 8)
 
@@ -317,6 +310,51 @@ struct ConfirmInviteView: View {
         .background(Color(.systemGroupedBackground))
     }
 
+    /// 下拉：选身份；最下面「新增身份」和「删除身份」（展开后点要删的那个）
+    private var relationMenu: some View {
+        Menu {
+            Picker("对方是你的", selection: $relation) {
+                ForEach(relations, id: \.self) { Text($0).tag($0) }
+            }
+            .pickerStyle(.inline)
+            Divider()
+            Button { newRelation = ""; addingRelation = true } label: { Label("新增身份", systemImage: "plus") }
+            Menu {
+                ForEach(relations, id: \.self) { r in
+                    Button(r, role: .destructive) { removeRelation(r) }
+                }
+            } label: { Label("删除身份", systemImage: "trash") }
+            .disabled(relations.count <= 1)
+        } label: {
+            HStack(spacing: 4) {
+                Text(relation).font(.pf(.body))
+                Image(systemName: "chevron.up.chevron.down").font(.system(size: 13, weight: .semibold))
+            }
+            .foregroundStyle(Theme.accent)
+        }
+        .alert("新增身份", isPresented: $addingRelation) {
+            TextField("比如 闺蜜、学姐", text: $newRelation)
+            Button("添加") { addRelation() }
+            Button("取消", role: .cancel) {}
+        } message: {
+            Text("最多 10 个字，只存在这台手机上")
+        }
+    }
+
+    private func addRelation() {
+        let name = String(newRelation.trimmingCharacters(in: .whitespacesAndNewlines).prefix(10))
+        guard !name.isEmpty else { return }
+        if !relations.contains(name) { relationsRaw = (relations + [name]).joined(separator: "\n") }
+        relation = name
+    }
+
+    private func removeRelation(_ r: String) {
+        let rest = relations.filter { $0 != r }
+        guard !rest.isEmpty else { return }
+        relationsRaw = rest.joined(separator: "\n")
+        if relation == r { relation = rest.contains("朋友") ? "朋友" : rest[0] }
+    }
+
     private func group<C: View>(@ViewBuilder _ c: () -> C) -> some View {
         VStack(spacing: 0, content: c)
             .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
@@ -344,4 +382,9 @@ struct ConfirmInviteView: View {
         .buttonStyle(.plain)
         .accessibilityAddTraits(tier == t ? .isSelected : [])
     }
+}
+
+/// 名片上「对方是你的」默认几个身份；用户可以自己加、删
+enum RelationOptions {
+    static let defaults = ["家人", "女儿", "妈妈", "爸爸", "伴侣", "室友", "朋友", "同事"]
 }
