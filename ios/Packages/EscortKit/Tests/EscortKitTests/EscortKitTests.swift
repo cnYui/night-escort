@@ -242,3 +242,30 @@ final class APIClientTests: XCTestCase {
         XCTAssertTrue(sent.contains(#""location_scope":"alert_only""#))
     }
 }
+
+final class ChinaCoordinateTests: XCTestCase {
+    func testShanghaiOffsetMatchesMapKitInChina() {
+        // 人民广场一带：WGS-84 → GCJ-02 往南约 216 米、往东约 430 米
+        let g = ChinaCoordinate.wgsToGcj(lat: 31.2304, lng: 121.4737)
+        XCTAssertEqual(g.lat, 31.228458, accuracy: 1e-5)
+        XCTAssertEqual(g.lng, 121.478223, accuracy: 1e-5)
+    }
+
+    func testRoundTripIsUnderOneMeter() {
+        for (lat, lng) in [(31.2304, 121.4737), (39.9087, 116.3975), (22.5431, 114.0579), (30.5728, 104.0668)] {
+            let g = ChinaCoordinate.wgsToGcj(lat: lat, lng: lng)
+            let w = ChinaCoordinate.gcjToWgs(lat: g.lat, lng: g.lng)
+            XCTAssertEqual(w.lat, lat, accuracy: 1e-6)
+            XCTAssertEqual(w.lng, lng, accuracy: 1e-6)
+        }
+    }
+
+    func testOutsideChinaIsUnchanged() {
+        let tokyo = ChinaCoordinate.wgsToGcj(lat: 35.6762, lng: 139.6503)
+        XCTAssertEqual(tokyo.lat, 35.6762)
+        XCTAssertEqual(tokyo.lng, 139.6503)
+        let sf = ChinaCoordinate.gcjToWgs(lat: 37.7749, lng: -122.4194)
+        XCTAssertEqual(sf.lat, 37.7749)
+        XCTAssertEqual(sf.lng, -122.4194)
+    }
+}

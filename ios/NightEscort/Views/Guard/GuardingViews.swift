@@ -67,16 +67,16 @@ struct GuardDetailView: View {
             if card.canViewLocation && !realtime.revoked {
                 Map(position: $position) {
                     if let p = realtime.point {
-                        Annotation(card.owner.displayName, coordinate: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lng)) {
+                        Annotation(card.owner.displayName, coordinate: .onMap(lat: p.lat, lng: p.lng)) {
                             AvatarView(name: card.owner.displayName, size: 36)
                                 .overlay(Circle().stroke(.white, lineWidth: 2))
                         }
-                        MapCircle(center: CLLocationCoordinate2D(latitude: p.lat, longitude: p.lng), radius: max(p.hAccM, 20))
+                        MapCircle(center: .onMap(lat: p.lat, lng: p.lng), radius: max(p.hAccM, 20))
                             .foregroundStyle(Theme.accent.opacity(0.12))
                     }
                 }
                 .onChange(of: realtime.point) { _, p in
-                    if let p { position = .region(MKCoordinateRegion(center: .init(latitude: p.lat, longitude: p.lng), latitudinalMeters: 1200, longitudinalMeters: 1200)) }
+                    if let p { position = .region(MKCoordinateRegion(center: .onMap(lat: p.lat, lng: p.lng), latitudinalMeters: 1200, longitudinalMeters: 1200)) }
                 }
             } else {
                 VStack(spacing: 10) {
@@ -150,8 +150,8 @@ struct IncidentAlertView: View {
                 .multilineTextAlignment(.center)
             Text(subtitle).font(.pf(.subheadline)).foregroundStyle(.secondary).multilineTextAlignment(.center)
             if let p = incident.lastLocation {
-                Map(initialPosition: .region(MKCoordinateRegion(center: .init(latitude: p.lat, longitude: p.lng), latitudinalMeters: 800, longitudinalMeters: 800))) {
-                    Marker(incident.owner.displayName, coordinate: .init(latitude: p.lat, longitude: p.lng))
+                Map(initialPosition: .region(MKCoordinateRegion(center: .onMap(lat: p.lat, lng: p.lng), latitudinalMeters: 800, longitudinalMeters: 800))) {
+                    Marker(incident.owner.displayName, coordinate: .onMap(lat: p.lat, lng: p.lng))
                 }
                 .frame(height: 180)
                 .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))

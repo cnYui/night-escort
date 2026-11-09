@@ -259,7 +259,9 @@ struct PlacePicker: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") {
                         guard let c = center else { return }
-                        onDone(HomePlace(id: initial?.id ?? UUID(), name: name.isEmpty ? "家" : name, lat: c.latitude, lng: c.longitude, radiusM: radius))
+                        // 地图坐标（国内是 GCJ-02）换回定位坐标再存，到家判断和定位对得上
+                        let w = c.forLocation
+                        onDone(HomePlace(id: initial?.id ?? UUID(), name: name.isEmpty ? "家" : name, lat: w.lat, lng: w.lng, radiusM: radius))
                         dismiss()
                     }
                     .disabled(center == nil)
@@ -269,7 +271,8 @@ struct PlacePicker: View {
                 if let p = initial {
                     name = p.name
                     radius = p.radiusM
-                    let c = CLLocationCoordinate2D(latitude: p.lat, longitude: p.lng)
+                    // 存的是定位坐标，画到地图上要换成地图坐标
+                    let c = CLLocationCoordinate2D.onMap(lat: p.lat, lng: p.lng)
                     center = c
                     position = .region(MKCoordinateRegion(center: c, latitudinalMeters: 800, longitudinalMeters: 800))
                 }
