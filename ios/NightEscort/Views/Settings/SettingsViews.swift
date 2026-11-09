@@ -5,11 +5,12 @@ import UserNotifications
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
     @State private var confirmDelete = false
-    @State private var showHomePlaces = SettingsView.demoOpensHomePlaces
+    @State private var showHomePlaces = SettingsView.demo("myhome")
+    @State private var showMyCode = SettingsView.demo("mycode")
 
-    private static var demoOpensHomePlaces: Bool {
+    private static func demo(_ scene: String) -> Bool {
         #if DEBUG
-        return ["myhome", "pickplace"].contains(DemoMode.scene ?? "")
+        return DemoMode.scene == scene
         #else
         return false
         #endif
@@ -27,6 +28,19 @@ struct SettingsView: View {
                         }
                     }
                 }
+                // 加好友从这里出示自己的码、发链接；首页「+」只负责扫别人的码
+                Section {
+                    NavigationLink { MyCodeView() } label: {
+                        Label {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("我的二维码")
+                                Text("让朋友扫一扫，或把链接发到微信").font(.pf(.caption)).foregroundStyle(.secondary)
+                            }
+                        } icon: { Image(systemName: "qrcode") }
+                    }
+                } footer: {
+                    Text("朋友加了你以后，你们回家时都可以选对方守着。")
+                }
                 Section {
                     NavigationLink { WhoCanSeeMeView() } label: { Label("谁能看到我", systemImage: "eye") }
                     NavigationLink { HomePlacesView() } label: { Label("我的家", systemImage: "house") }
@@ -43,6 +57,7 @@ struct SettingsView: View {
             }
             .navigationTitle("我的")
             .navigationDestination(isPresented: $showHomePlaces) { HomePlacesView() }
+            .navigationDestination(isPresented: $showMyCode) { MyCodeView() }
             .confirmationDialog("删除后所有连接、授权和位置记录立即删除，不能恢复。", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("删除账号", role: .destructive) {
                     Task {
@@ -161,14 +176,6 @@ struct HomePlacesView: View {
     @State private var editing: HomePlace?
     @State private var adding = false
 
-    private static var demoOpensPicker: Bool {
-        #if DEBUG
-        return DemoMode.scene == "pickplace"
-        #else
-        return false
-        #endif
-    }
-
     var body: some View {
         List {
             Section {
@@ -192,15 +199,6 @@ struct HomePlacesView: View {
             }
         }
         .navigationTitle("我的家")
-        #if DEBUG
-        .task {
-            // 演示：页面推进来以后再弹地图，太早弹会被导航动画吞掉
-            if HomePlacesView.demoOpensPicker && !adding {
-                try? await Task.sleep(for: .seconds(1))
-                adding = true
-            }
-        }
-        #endif
         .sheet(isPresented: $adding) {
             PlacePicker(title: "添加地点", initial: nil) { p in
                 if let p { places.append(p); save() }

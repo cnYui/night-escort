@@ -131,7 +131,7 @@ describe('落地页、保留期、健康检查', () => {
   it('邀请落地页：能打开 App、能复制链接，没有 6 位码，不显示手机号；过期后只显示一句话', async () => {
     const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
     const page = await h.app.inject({ url: `/i/${inv.token}` });
-    expect(page.body).toContain('小林邀请你长期守护她');
+    expect(page.body).toContain('小林想和你互相守护');
     expect(page.body).toContain(`anquanhuijia://i/${inv.token}`);
     expect(page.body).toContain(inv.url);
     expect(page.body).toContain('复制邀请链接');
@@ -176,5 +176,52 @@ describe('落地页、保留期、健康检查', () => {
     await h.tick();
     const ok = await h.app.inject({ url: '/healthz' });
     expect(ok.json().scheduler_lag_sec).toBe(0);
+  });
+});
+
+describe('加好友：扫「我的」二维码或点链接，互相守护，长期还是今晚临时由接受方选', () => {
+  const rowOf = async (u: TestUser, peer: TestUser) => (await call(h, u, 'GET', '/v1/connections')).find((c: any) => c.peer.id === peer.id);
+
+  it('选长期：两个方向都是长期守护，邀请人收到“加好友成功”', async () => {
+    const xu = await signup(h, '小许');
+    const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
+    await call(h, xu, 'POST', '/v1/invites/accept', { token: inv.token, tier: 'standing', mutual: true, relation: '朋友' });
+    const mine = await rowOf(lin, xu);
+    expect(mine.guards_me.tier).toBe('standing');
+    expect(mine.i_guard.tier).toBe('standing');
+    expect((pushesTo(h, lin, 'invite_accepted').at(-1)?.payload.aps as any).alert.body).toBe('小许 加你为好友，你们可以互相守护了');
+    // 已经互相长期守护：再扫一个新码，名片直接说已经是好友
+    const again = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
+    expect((await call(h, xu, 'GET', `/v1/invites/preview?token=${again.token}`)).state).toBe('already_friends');
+    await call(h, xu, 'POST', '/v1/invites/accept', { token: again.token, tier: 'standing', mutual: true }, 409);
+  });
+
+  it('选今晚临时：两个方向都是临时，绑到下一次回家', async () => {
+    const yu = await signup(h, '悠悠');
+    const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
+    await call(h, yu, 'POST', '/v1/invites/accept', { token: inv.token, tier: 'temporary', mutual: true });
+    const mine = await rowOf(lin, yu);
+    expect(mine.guards_me.tier).toBe('temporary');
+    expect(mine.guards_me.bind_to_escort).toBe(true);
+    expect(mine.i_guard.tier).toBe('temporary');
+    // 之后再扫一次选长期：临时升成长期，名片不会挡
+    const up = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
+    expect((await call(h, yu, 'GET', `/v1/invites/preview?token=${up.token}`)).state).toBe('valid');
+    await call(h, yu, 'POST', '/v1/invites/accept', { token: up.token, tier: 'standing', mutual: true });
+    const after = await rowOf(lin, yu);
+    expect(after.guards_me.tier).toBe('standing');
+    expect(after.i_guard.tier).toBe('standing');
+  });
+
+  it('已经单向守护的人再加好友：补上另一边，长期不会被降成临时', async () => {
+    const dong = await signup(h, '大东');
+    await connectStanding(h, lin, dong); // 大东长期守护小林，小林还不守护大东
+    expect((await rowOf(lin, dong)).i_guard).toBeNull();
+    const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
+    expect((await call(h, dong, 'GET', `/v1/invites/preview?token=${inv.token}`)).state).toBe('valid');
+    await call(h, dong, 'POST', '/v1/invites/accept', { token: inv.token, tier: 'temporary', mutual: true });
+    const mine = await rowOf(lin, dong);
+    expect(mine.guards_me.tier).toBe('standing');
+    expect(mine.i_guard.tier).toBe('temporary');
   });
 });

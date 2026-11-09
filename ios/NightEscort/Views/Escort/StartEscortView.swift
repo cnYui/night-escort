@@ -51,7 +51,7 @@ struct StartEscortView: View {
                     if preselected.isEmpty {
                     Section {
                         if o.candidates.isEmpty {
-                            Text("还没有担保人。先回首页点 + 加一个你信任的人。").foregroundStyle(.secondary)
+                            Text("还没有人守护你。去「我的」›「我的二维码」让朋友加你，或者点首页 + 扫朋友的码。").foregroundStyle(.secondary)
                         }
                         ForEach(o.candidates) { c in
                             Button { toggle(c, max: o.maxGuardians) } label: {
@@ -94,7 +94,7 @@ struct StartEscortView: View {
                         } header: {
                             Text("今晚回哪")
                         } footer: {
-                            Text("不设也能出发，只是到家时不会问你“到了吗”，要自己点结束。地点只存在这台手机上。")
+                            Text("不设也能出发，到家后自己点结束。")
                         }
                     } else {
                         Section {
@@ -129,7 +129,10 @@ struct StartEscortView: View {
                 .glassProminentButton()
                 .controlSize(.large)
                 .disabled(chosen.isEmpty || allNotReady)
-                .padding()
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                // 底色和列表一致：列表滚到按钮后面时文字不会和按钮叠在一起
+                .background(Color(.systemGroupedBackground))
             }
             .task { await load() }
             .onAppear { homePlaces = HomePlaceStore.load() }

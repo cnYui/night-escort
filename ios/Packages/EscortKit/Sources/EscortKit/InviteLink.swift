@@ -59,8 +59,8 @@ public enum InviteLink {
     }
 
     /// 发到微信里的那段文字：一句说明加链接，朋友点链接或复制整段打开 App 都能接上
-    public static func shareText(inviterName: String, kind: InviteKind, url: String) -> String {
-        let what = kind == .standing ? "长期守护她" : "今晚临时守护她"
-        return "\(inviterName)邀请你在「安全回家」当她的担保人（\(what)）。点开链接，或复制这段话后打开「安全回家」：\(url)"
+    public static func shareText(inviterName: String, kind: InviteKind = .standing, url: String) -> String {
+        let what = kind == .standing ? "以后回家时可以互相守护" : "今晚回家时临时互相守护"
+        return "\(inviterName)邀请你在「安全回家」加好友，\(what)。点开链接，或复制这段话后打开「安全回家」：\(url)"
     }
 }

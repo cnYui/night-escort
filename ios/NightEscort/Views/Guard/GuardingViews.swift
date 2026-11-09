@@ -256,11 +256,11 @@ struct ConfirmSafeSheet: View {
                     choice("继续护航", detail: "签到从现在重新计时", .continue)
                     if incident.canPauseOrEnd {
                         choice("她在别处过夜，暂停到明早 8:00", detail: "暂停期间不签到、不上报位置，早上轻提醒她一句", .pause)
-                        choice("帮她结束护航", detail: "其他担保人会收到一条不响铃的通知", .end)
+                        choice("帮她结束这次回家", detail: "其他守护她的人会收到一条不响铃的通知", .end)
                     }
                 } footer: {
                     if !incident.canPauseOrEnd {
-                        Text("临时担保人只能确认安全，不能暂停或结束她的护航。")
+                        Text("今晚临时守护的人只能确认安全，不能暂停或结束她这次回家。")
                     }
                 }
             }

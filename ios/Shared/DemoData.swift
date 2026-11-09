@@ -6,7 +6,8 @@ import Foundation
  演示模式（只在调试包里有）：不连后端，用一组示例数据把各个界面摆出来，方便在模拟器里截图。
  启动参数 `-demoScene <名字>`，例如：
    xcrun simctl launch booted app.nightescort.ios -demoScene home
- iPhone：login / home / start / active / sos / guarding / incident / me / myhome（我的家）/ pickplace（地图选点）/ add（点 + 的添加页）/ invite / confirm / confirm-login
+ iPhone：login / home / start / active / sos / guarding / incident / me / myhome（我的家）/ pickplace（地图选点）
+   / scan（点 + 的扫一扫，add 同）/ mycode（我的 › 我的二维码）/ invite / confirm（朋友的名片，加好友）/ confirm-login
  手表：signin / idle / running / paused / alerting / sos / sosfail / home / message
  */
 enum DemoMode {
@@ -118,11 +119,11 @@ enum DemoData {
         """)
     }
 
-    /// 朋友那边弹出的“成为担保人”（confirm 场景）
+    /// 朋友扫码或点链接后弹出的名片（confirm 场景）
     static var invitePreview: InvitePreview {
         decode(InvitePreview.self, """
-        {"state":"valid","kind":"standing","inviter":{"display_name":"小林"},"expires_at":"\(iso(23 * 3600))",
-         "headline":"小林邀请你长期守护她","explain":"她护航时你会收到通知并看到她的位置，护航结束就看不到了。","offer_reverse":true}
+        {"state":"valid","kind":"standing","inviter":{"display_name":"小周"},"expires_at":"\(iso(23 * 3600))",
+         "headline":"小周想和你互相守护","explain":"加为好友后，你们回家时都可以选对方守着。被选中才会收到通知、看到位置，到家就停。","offer_reverse":true}
         """)
     }
 

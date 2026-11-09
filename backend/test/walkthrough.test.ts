@@ -34,7 +34,7 @@ describe('3.1–3.3 加人', () => {
     expect(inv.code).toBeUndefined(); // 只有二维码和链接，没有 6 位邀请码
     // 妈妈点链接先看到确认页
     const pv = await call(h, mom, 'GET', `/v1/invites/preview?token=${inv.token}`);
-    expect(pv.headline).toBe('小林邀请你长期守护她');
+    expect(pv.headline).toBe('小林想和你互相守护');
     expect(pv.offer_reverse).toBe(true);
     // 出示二维码那边变成“正在确认”
     expect((await call(h, lin, 'GET', `/v1/invites/${inv.id}`)).state).toBe('scanned');
@@ -60,7 +60,7 @@ describe('3.1–3.3 加人', () => {
     // 临时邀请 30 分钟有效
     expect(new Date(inv.expires_at).getTime() - h.clock.now().getTime()).toBe(30 * MIN);
     const pv = await call(h, zhou, 'GET', `/v1/invites/preview?token=${inv.token}`);
-    expect(pv.headline).toBe('小林请你今晚临时守护她');
+    expect(pv.headline).toBe('小林想和你今晚临时互相守护');
     expect(pv.offer_reverse).toBe(false);
     expect(pv.explain).toContain('她到家后就结束');
     await call(h, zhou, 'POST', '/v1/invites/accept', { token: inv.token, also_guard_me: true });

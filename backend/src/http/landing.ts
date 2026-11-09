@@ -1,6 +1,6 @@
 /**
  * 邀请落地页（设计文档 8.1）和通用链接配置。2026-11-09 起只有二维码和链接，没有 6 位邀请码。
- * - 装了 App：从微信“在浏览器打开”或别的 App 点开时，通用链接直接进 App 弹“成为担保人”；
+ * - 装了 App：从微信“在浏览器打开”或别的 App 点开时，通用链接直接进 App 弹对方的名片（加好友）；
  *   在 Safari 里看到这一页时，点“打开「安全回家」”走自定义 scheme 进 App；
  * - 微信里：盖一层“点 ··· 选择在浏览器打开”，同时可以一键复制链接；
  * - 没装 App：点按钮时先把邀请链接写进粘贴板，再引导安装（上架前 TestFlight，上架后 App Store），
@@ -63,7 +63,7 @@ export function registerLanding(app: FastifyInstance, d: Deps) {
         <p class="muted">${esc(p.explain)}</p>
         <p class="muted small">${left}</p>
         <div id="ios">
-          <a id="open" class="btn primary" href="${esc(appLink)}">打开「安全回家」，成为担保人</a>
+          <a id="open" class="btn primary" href="${esc(appLink)}">打开「安全回家」，加为好友</a>
           <div id="install" class="hidden">
             <h2>还没装「安全回家」？</h2>
             <ol>${steps}</ol>
@@ -72,7 +72,7 @@ export function registerLanding(app: FastifyInstance, d: Deps) {
           <button class="btn glass" data-copy>复制邀请链接</button>
           <p id="copied" class="muted small hidden">已复制</p>
         </div>
-        <div id="android" class="hidden"><p class="big">暂时只有 iPhone 版</p><p class="muted">安卓版出来之前暂时不能当担保人。</p></div>
+        <div id="android" class="hidden"><p class="big">暂时只有 iPhone 版</p><p class="muted">安卓版出来之前暂时不能加好友。</p></div>
       </main>
       <script>
         var LINK = ${JSON.stringify(link).replace(/</g, '\\u003c')};

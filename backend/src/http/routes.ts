@@ -117,7 +117,15 @@ export function registerRoutes(app: FastifyInstance, d: Deps) {
   });
   app.post('/v1/invites/accept', async (req) => {
     const b = parse(
-      z.object({ token: z.string().min(1), relation: z.string().max(10).optional(), also_guard_me: z.boolean().optional() }),
+      z.object({
+        token: z.string().min(1),
+        relation: z.string().max(10).optional(),
+        also_guard_me: z.boolean().optional(),
+        // 接受方自己在名片上选：长期，还是今晚临时；不传就按邀请本身的类型
+        tier: z.enum(['standing', 'temporary']).optional(),
+        // 加好友：两个方向都建，互相守护（App 都传 true）
+        mutual: z.boolean().optional(),
+      }),
       req.body,
     );
     return invites.acceptInvite(d, (await me(req)).userId, b);

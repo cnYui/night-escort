@@ -20,17 +20,17 @@ struct RootView: View {
                 .environmentObject(model)
                 .interactiveDismissDisabled()
         }
-        // 扫码、点链接、粘贴板里认出来的邀请：弹“成为担保人”。没登录先不弹，登录后接着弹
+        // 扫码、点链接、粘贴板里认出来的邀请：弹对方的名片（加好友）。没登录先不弹，登录后接着弹
         .sheet(item: Binding(get: { model.signedIn ? model.pendingInvite.map(IdentifiedRef.init) : nil }, set: { model.pendingInvite = $0?.ref })) { item in
             ConfirmInviteView(ref: item.ref)
                 .environmentObject(model)
-                // 直接全高：说明、关系、“也让她守护我”和两个按钮一屏看全
+                // 直接全高：说明、关系、长期还是今晚临时和两个按钮一屏看全
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .safeAreaInset(edge: .top) {
             if !model.signedIn, model.pendingInvite != nil {
-                Label("有人邀请你当担保人，登录后继续", systemImage: "person.badge.shield.checkmark")
+                Label("有人想加你为好友，登录后继续", systemImage: "person.badge.shield.checkmark")
                     .font(.pf(.subheadline, weight: .medium))
                     .foregroundStyle(Theme.accent)
                     .padding(.horizontal, 16)
@@ -41,8 +41,12 @@ struct RootView: View {
         }
         #if DEBUG
         .sheet(isPresented: .constant(DemoMode.scene == "invite")) {
-            NavigationStack { InviteView(kind: .standing, template: nil) }
+            NavigationStack { MyCodeView() }
                 .environmentObject(model)
+        }
+        // 地图选点：直接从最外层弹，和「我的家」里点「添加地点」是同一个页面
+        .sheet(isPresented: .constant(DemoMode.scene == "pickplace")) {
+            PlacePicker(title: "添加地点", initial: nil) { _ in }
         }
         #endif
         // 求救没发出去：给一个直接拨 110 的出口
@@ -102,7 +106,7 @@ struct MainTabs: View {
         #if DEBUG
         switch DemoMode.scene {
         case "guarding", "incident": return 1
-        case "me", "myhome", "pickplace": return 2
+        case "me", "myhome", "pickplace", "mycode": return 2
         default: return 0
         }
         #else

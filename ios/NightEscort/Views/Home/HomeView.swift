@@ -5,7 +5,9 @@ import UIKit
 /// 首页：「安全回家」和 + 同一行，搜索栏，谁在守护我（蜂窝气泡），我要回家了 / 回家路上面板。
 struct HomeView: View {
     @EnvironmentObject var model: AppModel
-    @State private var showAdd = false
+    /// 「+」= 扫一扫：扫朋友「我的二维码」加好友。出示自己的码和发链接在「我的」里
+    @State private var showScan = false
+    @State private var scanned: InviteRef?
     @State private var showSearch = false
     @State private var showStart = false
     @State private var selected: Connection?
@@ -21,10 +23,11 @@ struct HomeView: View {
                 HStack(alignment: .center) {
                     Text("安全回家").font(.pf(size: 34, weight: .bold))
                     Spacer()
-                    Button { showAdd = true } label: {
+                    Button { showScan = true } label: {
                         Image(systemName: "plus").font(.system(size: 19, weight: .semibold))
                             .frame(width: 24, height: 24)
                     }
+                    .accessibilityLabel("扫一扫加好友")
                     .glassButton()
                     .buttonBorderShape(.circle)
                     .controlSize(.large)
@@ -95,13 +98,18 @@ struct HomeView: View {
             #if DEBUG
             .onAppear {
                 if DemoMode.scene == "start" { showStart = true }
-                if DemoMode.scene == "add" { showAdd = true }
+                if ["add", "scan"].contains(DemoMode.scene ?? "") { showScan = true }
             }
             #endif
-            .sheet(isPresented: $showAdd) {
-                AddSheet().environmentObject(model)
-                    .presentationDetents([.medium, .large])
-                    .presentationBackground(Color(.systemGroupedBackground))
+            // 扫到了先关掉扫码页，关完再弹对方的名片，免得两个弹窗撞在一起
+            .fullScreenCover(isPresented: $showScan, onDismiss: {
+                if let ref = scanned { scanned = nil; model.pendingInvite = ref }
+            }) {
+                ScannerScreen { ref in
+                    scanned = ref
+                    showScan = false
+                }
+                .environmentObject(model)
             }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
             .sheet(isPresented: $showStart) {
@@ -278,7 +286,7 @@ struct SOSHoldButton: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("紧急求救")
-        .accessibilityHint("长按两秒，立刻通知你所有的担保人")
+        .accessibilityHint("长按两秒，立刻通知所有守护你的人")
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { fire() }
     }

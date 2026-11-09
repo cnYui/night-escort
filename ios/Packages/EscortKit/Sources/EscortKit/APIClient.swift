@@ -269,9 +269,10 @@ public final class APIClient: @unchecked Sendable {
         try await request("GET", "/v1/invites/preview?token=\(ref.token.urlQueryEscaped)")
     }
 
-    public func acceptInvite(_ ref: InviteRef, relation: String?, alsoGuardMe: Bool) async throws -> AcceptResult {
-        struct B: Encodable { let token: String; let relation: String?; let alsoGuardMe: Bool }
-        return try await request("POST", "/v1/invites/accept", body: B(token: ref.token, relation: relation, alsoGuardMe: alsoGuardMe))
+    /// 加好友：两个方向都建，互相守护；长期还是今晚临时由接受方在名片上选
+    public func acceptInvite(_ ref: InviteRef, relation: String?, tier: InviteKind) async throws -> AcceptResult {
+        struct B: Encodable { let token: String; let relation: String?; let tier: InviteKind; let mutual: Bool }
+        return try await request("POST", "/v1/invites/accept", body: B(token: ref.token, relation: relation, tier: tier, mutual: true))
     }
 
     // MARK: 连接与授权
