@@ -24,7 +24,8 @@ struct RootView: View {
         .sheet(item: Binding(get: { model.signedIn ? model.pendingInvite.map(IdentifiedRef.init) : nil }, set: { model.pendingInvite = $0?.ref })) { item in
             ConfirmInviteView(ref: item.ref)
                 .environmentObject(model)
-                .presentationDetents([.medium, .large])
+                // 直接全高：说明、关系、“也让她守护我”和两个按钮一屏看全
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .safeAreaInset(edge: .top) {
