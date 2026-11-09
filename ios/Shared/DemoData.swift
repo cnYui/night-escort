@@ -50,6 +50,13 @@ enum DemoData {
             c("p-tt", "唐唐", "同事", daysAgo: 12, guards: nil),
             c("p-aj", "阿杰", "朋友", daysAgo: 23, guards: standing("aj")),
             c("p-xz", "小赵", "同学", daysAgo: 40, guards: nil),
+            c("p-xx", "小许", "室友", daysAgo: 2, guards: nil),
+            c("p-xy", "小雅", "同学", daysAgo: 5, guards: standing("xy")),
+            c("p-ll", "林林", "邻居", daysAgo: 9, guards: nil),
+            c("p-bj", "表姐", "表姐", daysAgo: 15, guards: standing("bj")),
+            c("p-lc", "老陈", "同事", daysAgo: 18, guards: nil),
+            c("p-yy", "悠悠", "朋友", daysAgo: 27, guards: standing("yy")),
+            c("p-dd", "大东", "同学", daysAgo: 31, guards: nil),
         ]
         return decode([Connection].self, "[" + list.joined(separator: ",") + "]")
     }

@@ -10,6 +10,8 @@ import SwiftUI
 struct StartEscortView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.dismiss) private var dismiss
+    /// 在首页气泡里已经点选的人，进来直接勾上
+    var preselected: Set<String> = []
     @State private var options: StartOptions?
     @State private var chosen: Set<String> = []
     @State private var interval = 30
@@ -124,20 +126,22 @@ struct StartEscortView: View {
         #if DEBUG
         if DemoMode.scene != nil {
             let o = DemoData.startOptions
-            options = o
-            interval = o.defaultInterval
-            chosen = Set(o.candidates.filter(\.defaultChecked).map(\.id))
+            apply(o)
             return
         }
         #endif
         do {
-            let o = try await model.api.startOptions()
-            options = o
-            interval = o.defaultInterval
-            chosen = Set(o.candidates.filter(\.defaultChecked).map(\.id))
+            apply(try await model.api.startOptions())
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    private func apply(_ o: StartOptions) {
+        options = o
+        interval = o.defaultInterval
+        let picked = preselected.intersection(o.candidates.map(\.id))
+        chosen = picked.isEmpty ? Set(o.candidates.filter(\.defaultChecked).map(\.id)) : picked
     }
 
     private func start() async throws {

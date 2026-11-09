@@ -2,24 +2,37 @@ import EscortKit
 import SwiftUI
 import UIKit
 
-/// 首页：搜索栏 + 「+」，谁在守护我（气泡或列表），我要回家了 / 回家路上面板。
+/// 首页：「安全回家」和 + 同一行，搜索栏，谁在守护我（蜂窝气泡），我要回家了 / 回家路上面板。
 struct HomeView: View {
     @EnvironmentObject var model: AppModel
     @State private var showAdd = false
     @State private var showSearch = false
     @State private var showStart = false
     @State private var selected: Connection?
-    @State private var pendingRemoval: PendingRemoval?
+    /// 在气泡里点选的、这次想让谁守着你；选了人「我要回家了」才浮出来
+    @State private var picked: Set<String> = HomeView.initialPicked
 
-    struct PendingRemoval: Equatable {
-        let connection: Connection
-        let task: Task<Void, Never>
-        static func == (a: Self, b: Self) -> Bool { a.connection.id == b.connection.id }
-    }
+    private var escortOpen: Bool { model.escort?.isOpen == true }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // 标题和 + 放一行，不用系统大标题那种 + 单独占一行
+                HStack(alignment: .center) {
+                    Text("安全回家").font(.pf(size: 34, weight: .bold))
+                    Spacer()
+                    Button { showAdd = true } label: {
+                        Image(systemName: "plus").font(.system(size: 19, weight: .semibold))
+                            .frame(width: 24, height: 24)
+                    }
+                    .glassButton()
+                    .controlSize(.large)
+                    .accessibilityLabel("添加联系人")
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 10)
+
                 Button { showSearch = true } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -32,44 +45,33 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal)
-                .padding(.top, 4)
 
                 if let inter = model.escort?.intervention, model.escort?.status != .active {
                     InterventionBanner(text: inter.text)
                 }
 
-                switch HomeStyle.current {
-                case .bubble:
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("谁在守护我").font(.pf(.title3, weight: .semibold))
-                        Text(model.escort?.isOpen == true ? "蓝圈的人正在守着你回家。" : "回家时从这些人里选几个，他们会看到你到没到家。")
-                            .font(.pf(.footnote)).foregroundStyle(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
-                    GraphView(
-                        me: model.user?.displayName ?? "我",
-                        connections: model.connections,
-                        inEscort: Set(model.escort?.guardians.map(\.id) ?? []),
-                        onTap: { selected = $0 },
-                        onDragOut: { scheduleRemoval($0) }
-                    )
-                    .frame(maxHeight: .infinity)
-                case .list:
-                    PeopleListView(
-                        connections: model.connections,
-                        inEscort: Set(model.escort?.guardians.map(\.id) ?? []),
-                        onTap: { selected = $0 },
-                        onRemove: { scheduleRemoval($0) }
-                    )
-                    .frame(maxHeight: .infinity)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("谁在守护我").font(.pf(.title3, weight: .semibold))
+                    Text(escortOpen ? "蓝圈的人正在守着你回家。" : "点气泡选这次守着你的人，长按看详情。越久没一起回家，气泡越小。")
+                        .font(.pf(.footnote)).foregroundStyle(.secondary)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+
+                GraphView(
+                    me: model.user?.displayName ?? "我",
+                    connections: model.connections,
+                    inEscort: escortOpen ? Set(model.escort?.guardians.map(\.id) ?? []) : picked,
+                    onTap: { tap($0) },
+                    onDetail: { selected = $0 }
+                )
+                .frame(maxHeight: .infinity)
 
                 if let e = model.escort, e.isOpen {
                     ActiveEscortPanel(escort: e)
-                } else {
-                    // 首页不放求救按钮：求救在回家路上的面板里和手表上
+                } else if !picked.isEmpty {
+                    // 首页不放求救按钮：求救在回家路上的面板里和手表上。没选人时按钮藏起来，把地方让给气泡
                     VStack(spacing: 8) {
                         Button { showStart = true } label: {
                             Label { Text("我要回家了").font(.pf(.headline)) } icon: { Image(systemName: "house.fill") }
@@ -77,66 +79,50 @@ struct HomeView: View {
                         }
                         .glassProminentButton()
                         .controlSize(.large)
-                        Text("选几个人守着你，到家前定时报个平安")
+                        Text("已选 \(pickedNames)，到家前定时报个平安")
                             .font(.pf(.footnote)).foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
                     .padding()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .background(HomeStyle.current == .list ? Color(.systemGroupedBackground) : Color(.systemBackground))
-            .overlay(alignment: .bottom) {
-                if let p = pendingRemoval {
-                    HStack {
-                        Text("已移出 \(p.connection.shownName)")
-                        Spacer()
-                        Button("撤销") {
-                            p.task.cancel()
-                            pendingRemoval = nil
-                        }
-                        .bold()
-                    }
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
-                    .padding()
-                    .padding(.bottom, 80)
-                }
-            }
-            .navigationTitle("安全回家")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                        .accessibilityLabel("添加联系人")
-                }
-            }
+            .background(Color(.systemBackground))
+            .toolbar(.hidden, for: .navigationBar)
             #if DEBUG
             .onAppear { if DemoMode.scene == "start" { showStart = true } }
             #endif
-            .refreshable { await model.refreshAll() }
             .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
-            .sheet(isPresented: $showStart) { StartEscortView().environmentObject(model) }
+            .sheet(isPresented: $showStart) { StartEscortView(preselected: picked).environmentObject(model) }
+            .onChange(of: escortOpen) { _, open in if open { picked = [] } }
+            .animation(.spring(duration: 0.35), value: picked.isEmpty)
             .sheet(item: $selected) { c in ContactCard(connection: c).environmentObject(model).presentationDetents([.medium, .large]) }
+            .task { await model.refreshAll() }
         }
     }
 
-    /// 拖出图谱 = 移出担保人，底部 5 秒“撤销”（3.8）
-    private func scheduleRemoval(_ c: Connection) {
-        guard let grant = c.guardsMe else { return }
-        if model.escort?.status == .alerting {
-            // 联系不上时不允许拖动移出，只能从卡片里确认
-            selected = c
-            return
+    /// 点担保人 = 选上 / 取消；还不能守护你的人点了直接看详情；回家路上点谁都是看详情
+    private func tap(_ c: Connection) {
+        guard !escortOpen, c.guardsMe != nil else { selected = c; return }
+        UISelectionFeedbackGenerator().selectionChanged()
+        if picked.contains(c.id) { picked.remove(c.id) } else { picked.insert(c.id) }
+    }
+
+    private var pickedNames: String {
+        let names = model.connections.filter { picked.contains($0.id) }.map(\.shownName)
+        return names.count <= 3 ? names.joined(separator: "、") : names.prefix(3).joined(separator: "、") + " 等 \(names.count) 人"
+    }
+
+    /// 调试截图用：启动参数 `-homePick p-ak,p-mm` 预先选好人
+    private static var initialPicked: Set<String> {
+        #if DEBUG
+        if let s = UserDefaults.standard.string(forKey: "homePick") {
+            return Set(s.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) })
         }
-        let task = Task {
-            try? await Task.sleep(for: .seconds(5))
-            if Task.isCancelled { return }
-            try? await model.api.revokeGrant(id: grant.grantId)
-            await model.refreshAll()
-            pendingRemoval = nil
-        }
-        pendingRemoval = PendingRemoval(connection: c, task: task)
+        #endif
+        return []
     }
 }
 
