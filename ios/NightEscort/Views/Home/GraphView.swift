@@ -5,9 +5,6 @@ import SwiftUI
 enum HomePeople {
     /// 超过这么多天没一起回家，就不在首页显示
     static let fadeOutDays: Double = 35
-    /// 回家路上那一排最多放几个
-    static let rowCapacity = 6
-
     static func days(_ c: Connection, now: Date = Date()) -> Double {
         now.timeIntervalSince(c.lastTogetherAt ?? c.connectedAt) / 86_400
     }
@@ -38,6 +35,8 @@ struct GraphView: View {
     let onTap: (Connection) -> Void
     /// 长按气泡看详情
     let onDetail: (Connection) -> Void
+    /// 回家路上：只留正在守着你的人，按可用空间整体缩小放下
+    var focusOnly = false
 
     /// 相邻两个格子中心的距离
     private static let spacing: CGFloat = 100
@@ -51,30 +50,16 @@ struct GraphView: View {
 
     var body: some View {
         GeometryReader { geo in
-            let split = HomePeople.split(connections)
-            if geo.size.height < 360 && !split.shown.isEmpty {
-                compactRow(Array(split.shown.prefix(HomePeople.rowCapacity)), size: geo.size)
+            if focusOnly {
+                let guarding = connections.filter { inEscort.contains($0.id) }
+                    .sorted { HomePeople.days($0) < HomePeople.days($1) }
+                honeycomb(guarding, gone: 0, size: geo.size)
             } else {
+                let split = HomePeople.split(connections)
                 honeycomb(split.shown, gone: split.gone.count, size: geo.size)
             }
         }
         .padding(.top, 8)
-    }
-
-    // MARK: 回家路上：下面面板占了地方，只留一排小气泡，蓝圈是这次守着你的人
-
-    private func compactRow(_ people: [Connection], size: CGSize) -> some View {
-        HStack(alignment: .top, spacing: 6) {
-            ForEach(people) { c in
-                HexBubble(connection: c, chosen: inEscort.contains(c.id), diameter: 52, showName: true)
-                    .frame(maxWidth: .infinity)
-                    .onTapGesture { onTap(c) }
-                    .contextMenu { detailButton(c) }
-            }
-        }
-        .padding(.horizontal)
-        .padding(.bottom, 16)
-        .frame(width: size.width, height: size.height)
     }
 
     private func detailButton(_ c: Connection) -> some View {
@@ -84,7 +69,11 @@ struct GraphView: View {
     // MARK: 蜂窝
 
     private func honeycomb(_ people: [Connection], gone: Int, size: CGSize) -> some View {
-        let z = (zoom * pinch).clamped(to: Self.zoomRange)
+        // 回家路上下面有面板，地方小：按人数整体缩小，保证这几个人都在清楚的范围里
+        let fit: CGFloat = focusOnly
+            ? min(1, min(size.width, size.height) / 2 * 0.55 / (Self.spacing * CGFloat(max(Self.ringCount(people.count + 1), 1))))
+            : 1
+        let z = fit * (zoom * pinch).clamped(to: Self.zoomRange)
         let off = CGSize(width: pan.width + drag.width, height: pan.height + drag.height)
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
         let cells = Self.hexCells(count: people.count + 1)

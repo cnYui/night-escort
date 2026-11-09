@@ -28,7 +28,26 @@ struct StartEscortView: View {
     var body: some View {
         NavigationStack {
             Form {
+                if let o = options, !preselected.isEmpty {
+                    // 人已经在首页气泡里选好了，这里不再重复列；只把可能收不到通知的人提出来
+                    let warned = o.candidates.filter { chosen.contains($0.id) && $0.readiness?.warning != nil }
+                    if !warned.isEmpty {
+                        Section {
+                            ForEach(warned) { c in
+                                HStack(spacing: 12) {
+                                    AvatarView(name: c.guardian.displayName, url: c.guardian.avatarUrl, size: 32)
+                                    Text(c.guardian.displayName)
+                                    Spacer()
+                                    Text(c.readiness?.warning ?? "").font(.pf(.caption)).foregroundStyle(Theme.danger)
+                                }
+                            }
+                        } footer: {
+                            Text("她可能收不到你的提醒，可以回首页换个人。")
+                        }
+                    }
+                }
                 if let o = options {
+                    if preselected.isEmpty {
                     Section {
                         if o.candidates.isEmpty {
                             Text("还没有担保人。先回首页点 + 加一个你信任的人。").foregroundStyle(.secondary)
@@ -52,6 +71,7 @@ struct StartEscortView: View {
                         }
                     } header: {
                         Text("这次谁守着你（最多 \(o.maxGuardians) 人）")
+                    }
                     }
 
                     Section("多久报一次平安") {

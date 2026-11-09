@@ -65,7 +65,8 @@ struct HomeView: View {
                     connections: model.connections,
                     inEscort: escortOpen ? Set(model.escort?.guardians.map(\.id) ?? []) : picked,
                     onTap: { tap($0) },
-                    onDetail: { selected = $0 }
+                    onDetail: { selected = $0 },
+                    focusOnly: escortOpen
                 )
                 .frame(maxHeight: .infinity)
 
