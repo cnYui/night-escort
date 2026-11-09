@@ -39,7 +39,7 @@ PG="$(brew --prefix postgresql@16 2>/dev/null)/bin"
 "$PG/createdb" -h 127.0.0.1 -U postgres "$DB"
 export DATABASE_URL="postgres://postgres@127.0.0.1:5432/$DB"
 
-echo "== 2/6 启动后端（端口 $PORT，测试号码 +86199000*，可拨时钟）"
+echo "== 2/6 启动后端（端口 ${PORT}，测试号码 +86199000*，可拨时钟）"
 cd "$ROOT/backend"
 [ -d node_modules ] || npm ci --silent
 npm run migrate --silent
@@ -75,13 +75,17 @@ echo "== 6/6 导出截图到 $OUT/shots"
 mkdir -p "$OUT/shots"
 if xcrun xcresulttool export attachments --path "$OUT/result.xcresult" --output-path "$OUT/shots/raw" >/dev/null 2>&1; then
   python3 - "$OUT/shots" <<'PY'
-import json, os, shutil, sys
+import json, os, re, shutil, sys
 out = sys.argv[1]; raw = os.path.join(out, "raw")
 for test in json.load(open(os.path.join(raw, "manifest.json"))):
     for a in test.get("attachments", []):
         name = a.get("suggestedHumanReadableName") or a["exportedFileName"]
+        # 只要测试里 shot() 存的截图（名字以两位序号开头），失败时系统附带的层级、录屏等不要
+        if not re.match(r"^\d{2}-", name) or not a["exportedFileName"].lower().endswith((".png", ".jpg", ".jpeg", ".heic")):
+            continue
         base = name.split("_0_")[0] if "_0_" in name else os.path.splitext(name)[0]
-        shutil.copy(os.path.join(raw, a["exportedFileName"]), os.path.join(out, base + ".png"))
+        ext = os.path.splitext(a["exportedFileName"])[1]
+        shutil.copy(os.path.join(raw, a["exportedFileName"]), os.path.join(out, base + ext))
 shutil.rmtree(raw)
 PY
   ls "$OUT/shots"

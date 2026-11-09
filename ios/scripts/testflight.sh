@@ -40,7 +40,7 @@ fi
 echo "== 生成工程"
 xcodegen generate
 
-echo "== 归档（构建号 $BUILD_NUMBER，后端 https://$API_HOST）"
+echo "== 归档（构建号 ${BUILD_NUMBER}，后端 https://${API_HOST}）"
 xcodebuild archive \
   -project NightEscort.xcodeproj \
   -scheme NightEscort \

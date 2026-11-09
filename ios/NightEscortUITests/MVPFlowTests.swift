@@ -50,7 +50,8 @@ final class MVPFlowTests: XCTestCase {
         shot("登录页")
         phoneField.tap()
         phoneField.typeText(myPhone)
-        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "我已阅读并同意")).firstMatch.tap()
+        // 协议勾选是 Toggle，界面层级里是 Switch
+        app.switches.matching(NSPredicate(format: "label CONTAINS %@", "我已阅读并同意")).firstMatch.tap()
         app.buttons["获取验证码"].tap()
         let codeField = app.textFields["6 位验证码"]
         codeField.tap()
@@ -84,10 +85,10 @@ final class MVPFlowTests: XCTestCase {
         let me = try await ke.api.connections().first { $0.peer.displayName == myName }!.peer
 
         // 3. 在气泡里选阿珂，出发
-        let bubble = app.descendants(matching: .any).matching(identifier: ke.name).firstMatch
+        let bubble = labeled(ke.name)
         XCTAssertTrue(bubble.waitForExistence(timeout: 15), "首页没出现阿珂的气泡")
         bubble.tap()
-        let goHome = app.buttons["我要回家了"]
+        let goHome = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "我要回家了")).firstMatch
         XCTAssertTrue(goHome.waitForExistence(timeout: 5), "选了人没出现「我要回家了」")
         shot("选好守着我的人")
         goHome.tap()
@@ -123,7 +124,7 @@ final class MVPFlowTests: XCTestCase {
         shot("阿珂确认安全后")
 
         // 6. 一键求救：长按 2 秒
-        let sos = app.descendants(matching: .any).matching(identifier: "紧急求救").firstMatch
+        let sos = labeled("紧急求救")
         XCTAssertTrue(sos.waitForExistence(timeout: 5))
         sos.press(forDuration: 2.6)
         XCTAssertTrue(app.staticTexts["已发出求救"].waitForExistence(timeout: 15), "长按后没发出求救")
@@ -146,7 +147,7 @@ final class MVPFlowTests: XCTestCase {
         XCTAssertTrue(opts.candidates.contains { $0.id == me.id }, "阿珂开始页里选不到我")
         let keEscort = try await ke.api.startEscort(guardianIds: [me.id], intervalMin: 15, from: "phone")
         app.tabBars.buttons["我守护的人"].tap()
-        XCTAssertTrue(app.staticTexts.matching(identifier: ke.name).firstMatch.waitForExistence(timeout: 20), "我守护的人里没出现阿珂")
+        XCTAssertTrue(labeled(ke.name).waitForExistence(timeout: 20), "我守护的人里没出现阿珂")
         shot("我守护的人")
         try await Dev(base: base).advance(minutes: 28)
         let safe = app.buttons["已联系上，她安全"]
@@ -164,6 +165,11 @@ final class MVPFlowTests: XCTestCase {
     }
 
     // MARK: 工具
+
+    /// 按显示的文字找元素，不管它是按钮、文字还是气泡
+    private func labeled(_ label: String) -> XCUIElement {
+        app.descendants(matching: .any).matching(NSPredicate(format: "label == %@", label)).firstMatch
+    }
 
     private func shot(_ name: String) {
         step += 1
