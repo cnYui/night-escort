@@ -71,12 +71,16 @@ struct GraphView: View {
     private func honeycomb(_ people: [Connection], gone: Int, size: CGSize) -> some View {
         // 回家路上下面有面板，地方小：按人数整体缩小，保证这几个人都在清楚的范围里
         let fit: CGFloat = focusOnly
-            ? min(1, min(size.width, size.height) / 2 * 0.55 / (Self.spacing * CGFloat(max(Self.ringCount(people.count + 1), 1))))
+            ? min(1, min(size.width, size.height) / 2 * 0.8 / (Self.spacing * CGFloat(max(Self.ringCount(people.count + 1), 1))))
             : 1
         let z = fit * (zoom * pinch).clamped(to: Self.zoomRange)
         let off = CGSize(width: pan.width + drag.width, height: pan.height + drag.height)
         let center = CGPoint(x: size.width / 2, y: size.height / 2)
-        let cells = Self.hexCells(count: people.count + 1)
+        // 外圈没坐满时整团的重心会偏，挪回正中
+        let rawCells = Self.hexCells(count: people.count + 1)
+        let cx = rawCells.map(\.x).reduce(0, +) / CGFloat(rawCells.count)
+        let cy = rawCells.map(\.y).reduce(0, +) / CGFloat(rawCells.count)
+        let cells = rawCells.map { CGPoint(x: $0.x - cx, y: $0.y - cy) }
         let moved = abs(zoom - 1) > 0.01 || hypot(pan.width, pan.height) > 1
 
         func place(_ cell: CGPoint) -> (point: CGPoint, scale: CGFloat) {
@@ -119,7 +123,8 @@ struct GraphView: View {
                     .position(meAt.point)
             }
 
-            if gone > 0 && !moved {
+            // 选了人时下面会浮出按钮，地方变小，这行提示先收起来
+            if gone > 0 && !moved && inEscort.isEmpty {
                 Text("还有 \(gone) 人超过 35 天没一起回家，搜索能找到")
                     .font(.pf(.caption)).foregroundStyle(.secondary)
                     .position(x: center.x, y: size.height - 26)

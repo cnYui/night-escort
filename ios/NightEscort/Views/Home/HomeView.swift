@@ -97,7 +97,11 @@ struct HomeView: View {
             #endif
             .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
-            .sheet(isPresented: $showStart) { StartEscortView(preselected: picked).environmentObject(model) }
+            .sheet(isPresented: $showStart) {
+                // 人已经在气泡里选好了，开始页只剩间隔和目的地，半屏就够
+                StartEscortView(preselected: picked).environmentObject(model)
+                    .presentationDetents(picked.isEmpty ? [.large] : [.medium, .large])
+            }
             .onChange(of: escortOpen) { _, open in if open { picked = [] } }
             .animation(.spring(duration: 0.35), value: picked.isEmpty)
             .sheet(item: $selected) { c in ContactCard(connection: c).environmentObject(model).presentationDetents([.medium, .large]) }
