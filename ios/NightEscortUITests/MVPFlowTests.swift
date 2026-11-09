@@ -126,8 +126,12 @@ final class MVPFlowTests: XCTestCase {
             return (card?.nextDueAt ?? .distantPast) > Date().addingTimeInterval(14 * 60)
         }
 
-        // 5. 漏报：时钟往前拨 28 分钟（15 分钟到点，再 10 分钟没回应才通知守护人），App 开着就该变成“需要你回应”，阿珂那边出现联系不上
-        try await Dev(base: base).advance(minutes: 28)
+        // 5. 漏报：时钟拨过这次报平安的时间，再加 10 分钟没回应才通知守护人，App 开着就该变成“需要你回应”，阿珂那边出现联系不上
+        // 开始页用的是默认间隔（现在 30 分钟），按阿珂看到的下次时间算，不写死分钟数
+        let due = try await ke.api.guarding().first { $0.owner.id == me.id }?.nextDueAt
+        let dueAt = try XCTUnwrap(due, "阿珂那边看不到下次报平安的时间")
+        let left = try await Dev(base: base).minutes(until: dueAt)
+        try await Dev(base: base).advance(minutes: left + 12)
         XCTAssertTrue(app.staticTexts["需要你回应"].waitForExistence(timeout: 20), "漏报后 App 没变成需要回应")
         shot("漏报后")
         let missed = try await waitFor("阿珂收到联系不上") {
@@ -245,6 +249,22 @@ final class Friend {
 /// 联调接口：拨时钟
 struct Dev {
     let base: URL
+
+    /// 后端时钟（拨过之后和本机时间不一样）
+    func now() async throws -> Date {
+        let (data, _) = try await URLSession.shared.data(from: base.appendingPathComponent("/v1/dev/clock"))
+        let obj = try JSONSerialization.jsonObject(with: data) as? [String: Any]
+        guard let s = obj?["now"] as? String else { throw NSError(domain: "dev", code: 2, userInfo: [NSLocalizedDescriptionKey: "读不到后端时钟"]) }
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let d = f.date(from: s) else { throw NSError(domain: "dev", code: 3, userInfo: [NSLocalizedDescriptionKey: "后端时钟格式不对：\(s)"]) }
+        return d
+    }
+
+    /// 从后端现在到某个时间点还有几分钟（向上取整，至少 0）
+    func minutes(until date: Date) async throws -> Int {
+        max(0, Int((date.timeIntervalSince(try await now()) / 60).rounded(.up)))
+    }
 
     func advance(minutes: Int) async throws {
         var req = URLRequest(url: base.appendingPathComponent("/v1/dev/clock/advance"))
