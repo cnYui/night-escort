@@ -7,6 +7,7 @@ import { AppError, unauthorized } from '../errors.js';
 import { verifyAccess, type AuthContext } from '../services/auth.js';
 import { registerDev } from './dev.js';
 import { registerLanding } from './landing.js';
+import { registerLegal } from './legal.js';
 import { registerRoutes } from './routes.js';
 import { registerWs } from './ws.js';
 
@@ -78,6 +79,7 @@ export async function buildApp(d: Deps, opts: { logger?: boolean } = {}): Promis
 
   registerRoutes(app, d);
   registerLanding(app, d);
+  registerLegal(app);
   registerWs(app, d);
   if (d.config.devTools) registerDev(app, d);
   return app;

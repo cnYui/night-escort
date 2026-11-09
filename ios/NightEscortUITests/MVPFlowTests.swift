@@ -48,6 +48,16 @@ final class MVPFlowTests: XCTestCase {
         let phoneField = app.textFields["手机号"]
         XCTAssertTrue(phoneField.waitForExistence(timeout: 20), "没看到登录页")
         shot("登录页")
+        // 点《隐私政策》看全文（找不到链接就跳过，不影响后面的流程）
+        let privacyLink = app.links["《隐私政策》"]
+        if privacyLink.waitForExistence(timeout: 3) {
+            privacyLink.tap()
+            if app.navigationBars["隐私政策"].waitForExistence(timeout: 5) {
+                shot("隐私政策")
+                app.navigationBars["隐私政策"].buttons["完成"].tap()
+            }
+        }
+        XCTAssertFalse(app.buttons["获取验证码"].isEnabled, "没勾选协议时不该能获取验证码")
         phoneField.tap()
         phoneField.typeText(myPhone)
         // 协议勾选是 Toggle，界面层级里是 Switch

@@ -24,6 +24,9 @@ targets:
     sources:
       - NightEscort
       - Shared
+      # 用户协议和隐私政策：和后端 /legal 网页同一份
+      - path: ../backend/legal
+        buildPhase: resources
     dependencies:
       - package: EscortKit
       - target: NightEscortWidgets

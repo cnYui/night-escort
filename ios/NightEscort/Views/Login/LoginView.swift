@@ -20,6 +20,7 @@ struct LoginView: View {
     @State private var agreed = false
     @State private var cooldown = 0
     @State private var error: String?
+    @State private var legal: LegalDoc?
 
     var body: some View {
         NavigationStack {
@@ -32,6 +33,26 @@ struct LoginView: View {
             }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $legal) { LegalView(doc: $0) }
+        }
+    }
+
+    /**
+     勾选同意《用户协议》和《隐私政策》：不勾就不能获取验证码、登录、微信和 Apple 登录（新号码登录后直接进入注册，所以注册也一样）。
+     两个书名可以点开看全文。勾选框单独一个开关，方便读屏和界面测试（标签含“我已阅读并同意”）。
+     */
+    private var agreement: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Toggle(isOn: $agreed) { EmptyView() }
+                .toggleStyle(CheckboxStyle())
+                .accessibilityLabel("我已阅读并同意《用户协议》和《隐私政策》")
+            Text("我已阅读并同意[《用户协议》](anquanhuijia-legal:terms)和[《隐私政策》](anquanhuijia-legal:privacy)。回家路上的位置只给你选中的人看，结束就停止。")
+                .font(.pf(.footnote))
+                .tint(Theme.accent)
+                .environment(\.openURL, OpenURLAction { url in
+                    if let d = LegalDoc(url: url) { legal = d; return .handled }
+                    return .systemAction
+                })
         }
     }
 
@@ -76,10 +97,7 @@ struct LoginView: View {
                         .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
                 }
 
-                Toggle(isOn: $agreed) {
-                    Text("我已阅读并同意《用户协议》和《隐私政策》").font(.pf(.footnote))
-                }
-                .toggleStyle(CheckboxStyle())
+                agreement
 
                 if let error { Text(error).font(.pf(.footnote)).foregroundStyle(Theme.danger) }
 

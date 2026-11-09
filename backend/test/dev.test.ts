@@ -77,3 +77,16 @@ describe('开始前的“收得到通知”判断', () => {
     }
   });
 });
+
+describe('用户协议和隐私政策网页', () => {
+  it('两份文档都能打开，标题和加粗正确', async () => {
+    for (const [slug, title] of [['privacy', '「安全回家」隐私政策'], ['terms', '「安全回家」用户协议']]) {
+      const res = await h.app.inject({ method: 'GET', url: `/legal/${slug}` });
+      expect(res.statusCode).toBe(200);
+      expect(res.headers['content-type']).toContain('text/html');
+      expect(res.body).toContain(`<h1>${title}</h1>`);
+      expect(res.body).toContain('<strong>');
+      expect(res.body).not.toContain('**');
+    }
+  });
+});
