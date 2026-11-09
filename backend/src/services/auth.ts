@@ -67,6 +67,12 @@ const secret = (d: Deps) => new TextEncoder().encode(d.config.jwtSecret);
 export async function sendSmsCode(d: Deps, rawPhone: string, purpose: SmsPurpose, ip = 'unknown'): Promise<{ resend_after_sec: number }> {
   const phone = requirePhone(rawPhone);
   const ph = d.phone.hash(phone);
+  const testCode = smsTestCodeFor(d, phone);
+  if (testCode) {
+    // 测试号码：固定验证码、不发短信、不限频，方便反复登录
+    await d.kv.set(`sms:code:${purpose}:${ph}`, JSON.stringify({ code: testCode, attempts: 0 }), CODE_TTL);
+    return { resend_after_sec: CODE_RESEND / 1000 };
+  }
   if ((await d.kv.ttlMs(`sms:cool:${ph}`)) > 0) {
     throw tooMany('sms_too_frequent', '验证码发送太频繁，请稍后再试', { retry_after_sec: Math.ceil((await d.kv.ttlMs(`sms:cool:${ph}`)) / 1000) });
   }
@@ -80,6 +86,14 @@ export async function sendSmsCode(d: Deps, rawPhone: string, purpose: SmsPurpose
   await d.kv.set(`sms:cool:${ph}`, '1', CODE_RESEND);
   await d.sms.sendCode(phone, code);
   return { resend_after_sec: CODE_RESEND / 1000 };
+}
+
+/** 是测试号码就返回固定验证码 */
+export function smsTestCodeFor(d: Deps, e164: string): string | null {
+  const { numbers, code } = d.config.smsTest;
+  if (!code) return null;
+  const hit = numbers.some((n) => (n.endsWith('*') ? e164.startsWith(n.slice(0, -1)) : e164 === n));
+  return hit ? code : null;
 }
 
 async function consumeCode(d: Deps, phone: string, purpose: SmsPurpose, code: string): Promise<void> {

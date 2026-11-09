@@ -31,6 +31,13 @@ export interface Config {
   apple: { audiences: string[] };
   ios: { appStoreUrl: string | null; testFlightUrl: string | null; appleTeamId: string };
   schedulerEnabled: boolean;
+  /**
+   * 测试号码：发验证码时不真发短信，验证码固定为 smsTestCode。给 TestFlight 测试和 App 审核账号用。
+   * 逗号分隔的 E.164 号码，结尾可以带 * 表示前缀，例如 +86199000*
+   */
+  smsTest: { numbers: string[]; code: string | null };
+  /** 联调用的 /v1/dev 接口（拨时钟、立刻跑一轮定时任务、看记录下来的推送）。生产环境不允许打开 */
+  devTools: boolean;
 }
 
 export function loadConfig(): Config {
@@ -72,5 +79,20 @@ export function loadConfig(): Config {
       appleTeamId: env('APPLE_TEAM_ID', 'TEAMID0000'),
     },
     schedulerEnabled: env('SCHEDULER_ENABLED', 'true') === 'true',
+    smsTest: smsTestConfig(),
+    devTools: devToolsEnabled(prod),
   };
+}
+
+function smsTestConfig(): Config['smsTest'] {
+  const numbers = (process.env.SMS_TEST_NUMBERS ?? '').split(',').map((s) => s.trim()).filter(Boolean);
+  const code = process.env.SMS_TEST_CODE || null;
+  if (numbers.length > 0 && !/^\d{6}$/.test(code ?? '')) throw new Error('设置了 SMS_TEST_NUMBERS 就要把 SMS_TEST_CODE 设成 6 位数字');
+  return { numbers, code };
+}
+
+function devToolsEnabled(prod: boolean): boolean {
+  const on = process.env.DEV_TOOLS === 'true';
+  if (on && prod) throw new Error('生产环境不能打开 DEV_TOOLS');
+  return on;
 }

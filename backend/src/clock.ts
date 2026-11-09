@@ -21,3 +21,11 @@ export class FakeClock implements Clock {
     this.t = new Date(d).getTime();
   }
 }
+
+/** 联调用：真实时间加一个可调的偏移，/v1/dev/clock/advance 往前拨（只在 DEV_TOOLS 打开时使用）。 */
+export class OffsetClock implements Clock {
+  offsetMs = 0;
+  now(): Date {
+    return new Date(Date.now() + this.offsetMs);
+  }
+}
