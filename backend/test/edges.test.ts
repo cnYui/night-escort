@@ -225,3 +225,44 @@ describe('加好友：扫「我的」二维码或点链接，互相守护，长�
     expect(mine.i_guard.tier).toBe('temporary');
   });
 });
+
+describe('换头像（「我的」页）', () => {
+  // 最小的“像 JPEG”的内容：文件头对就行，服务端不解码
+  const jpeg = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 7)]);
+  const put = async (u: TestUser, body: Buffer, type = 'image/jpeg') =>
+    h.app.inject({ method: 'PUT', url: '/v1/me/avatar', payload: body, headers: { authorization: `Bearer ${await freshToken(h, u)}`, 'content-type': type } });
+
+  it('传 JPEG 后有公开地址，好友看到的也是新头像；再换一次旧地址就失效', async () => {
+    const mei = await signup(h, '小美');
+    const res = await put(mei, jpeg);
+    expect(res.statusCode).toBe(200);
+    const url1: string = res.json().avatar_url;
+    expect(url1).toMatch(/^https:\/\/ye\.example\.com\/avatars\/[A-Za-z0-9_-]+\.jpg$/);
+    const path1 = new URL(url1).pathname;
+    const got = await h.app.inject({ method: 'GET', url: path1 });
+    expect(got.statusCode).toBe(200);
+    expect(got.headers['content-type']).toBe('image/jpeg');
+    expect(got.rawPayload.equals(jpeg)).toBe(true);
+
+    // 好友（互相守护）那边连接列表里的头像跟着变
+    const inv = await call(h, mei, 'POST', '/v1/invites', { kind: 'standing' });
+    await call(h, lin, 'POST', '/v1/invites/accept', { token: inv.token, tier: 'standing', mutual: true });
+    const row = (await call(h, lin, 'GET', '/v1/connections')).find((c: any) => c.peer.id === mei.id);
+    expect(row.peer.avatar_url).toBe(url1);
+
+    const url2: string = (await put(mei, jpeg)).json().avatar_url;
+    expect(url2).not.toBe(url1);
+    expect((await h.app.inject({ method: 'GET', url: path1 })).statusCode).toBe(404);
+    expect((await h.app.inject({ method: 'GET', url: new URL(url2).pathname })).statusCode).toBe(200);
+  });
+
+  it('不是图片、太大都拒绝；去掉头像后地址清空', async () => {
+    const yan = await signup(h, '小燕');
+    expect((await put(yan, Buffer.from('not an image at all'))).statusCode).toBe(400);
+    expect((await put(yan, Buffer.concat([jpeg, Buffer.alloc(301 * 1024)]))).statusCode).toBe(400);
+    const url: string = (await put(yan, jpeg)).json().avatar_url;
+    const cleared = await call(h, yan, 'DELETE', '/v1/me/avatar');
+    expect(cleared.avatar_url).toBeNull();
+    expect((await h.app.inject({ method: 'GET', url: new URL(url).pathname })).statusCode).toBe(404);
+  });
+});

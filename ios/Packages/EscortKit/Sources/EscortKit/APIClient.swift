@@ -102,13 +102,18 @@ public final class APIClient: @unchecked Sendable {
 
     struct Empty: Encodable {}
 
-    func request<T: Decodable>(_ method: String, _ path: String, body: (any Encodable)? = nil, auth: Bool = true, retry: Bool = true) async throws -> T {
+    /// raw：不走 JSON，直接把这段数据当请求体（传头像图片用）
+    func request<T: Decodable>(_ method: String, _ path: String, body: (any Encodable)? = nil, raw: (data: Data, contentType: String)? = nil, auth: Bool = true, retry: Bool = true) async throws -> T {
         guard let url = URL(string: path, relativeTo: baseURL) else { throw APIError(status: 0, code: "bad_url", message: "地址不对") }
         var req = URLRequest(url: url)
         req.httpMethod = method
         req.timeoutInterval = 20
         req.setValue("application/json", forHTTPHeaderField: "accept")
-        if let body {
+        if let raw {
+            req.setValue(raw.contentType, forHTTPHeaderField: "content-type")
+            req.httpBody = raw.data
+            req.timeoutInterval = 60
+        } else if let body {
             req.setValue("application/json", forHTTPHeaderField: "content-type")
             req.httpBody = try JSON.encoder.encode(AnyEncodable(body))
         }
@@ -125,7 +130,7 @@ public final class APIClient: @unchecked Sendable {
             throw APIError.network
         }
         if resp.statusCode == 401 && auth && retry, try await refresh() {
-            return try await request(method, path, body: body, auth: auth, retry: false)
+            return try await request(method, path, body: body, raw: raw, auth: auth, retry: false)
         }
         guard (200..<300).contains(resp.statusCode) else {
             throw Self.decodeError(data, status: resp.statusCode)
@@ -225,6 +230,14 @@ public final class APIClient: @unchecked Sendable {
         struct B: Encodable { let displayName: String?; let timeZone: String? }
         return try await request("PATCH", "/v1/me", body: B(displayName: displayName, timeZone: timeZone))
     }
+
+    /// 换头像：传裁好的 JPEG（512px 以内、300KB 以内），返回带新头像地址的资料
+    public func uploadAvatar(jpeg: Data) async throws -> PublicUser {
+        try await request("PUT", "/v1/me/avatar", raw: (jpeg, "image/jpeg"))
+    }
+
+    /// 去掉头像，回到名字首字
+    public func removeAvatar() async throws -> PublicUser { try await request("DELETE", "/v1/me/avatar") }
 
     public func deleteAccount() async throws {
         let _: OK = try await request("DELETE", "/v1/me")

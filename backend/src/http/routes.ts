@@ -86,6 +86,17 @@ export function registerRoutes(app: FastifyInstance, d: Deps) {
     return users.updateProfile(d, (await me(req)).userId, b);
   });
   app.delete('/v1/me', async (req) => users.deleteAccount(d, (await me(req)).userId));
+  // 换头像：请求体就是图片本身（Content-Type: image/jpeg 或 image/png）
+  app.addContentTypeParser(['image/jpeg', 'image/png'], { parseAs: 'buffer' }, (_req, body, done) => done(null, body));
+  app.put('/v1/me/avatar', async (req) => users.setAvatar(d, (await me(req)).userId, req.body));
+  app.delete('/v1/me/avatar', async (req) => users.removeAvatar(d, (await me(req)).userId));
+  // 头像公开地址：好友列表、名片和邀请落地页都直接用，不带登录
+  app.get<{ Params: { file: string } }>('/avatars/:file', async (req, reply) => {
+    const m = /^([A-Za-z0-9_-]{8,64})\.(jpg|png)$/.exec(req.params.file);
+    const a = m ? await users.avatarFile(d, m[1]!) : null;
+    if (!a) return reply.status(404).send({ error: { code: 'not_found', message: '没有这张头像' } });
+    return reply.header('content-type', a.content_type).header('cache-control', 'public, max-age=31536000, immutable').send(a.data);
+  });
   app.post('/v1/me/phone', async (req) => {
     const b = parse(z.object({ new_phone: z.string(), new_code: z.string(), old_code: z.string().optional(), password: z.string().optional() }), req.body);
     return auth.changePhone(d, await me(req), b);

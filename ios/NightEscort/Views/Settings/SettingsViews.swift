@@ -1,5 +1,7 @@
 import EscortKit
+import PhotosUI
 import SwiftUI
+import UIKit
 import UserNotifications
 
 struct SettingsView: View {
@@ -7,6 +9,9 @@ struct SettingsView: View {
     @State private var confirmDelete = false
     @State private var showHomePlaces = SettingsView.demo("myhome")
     @State private var showMyCode = SettingsView.demo("mycode")
+    @State private var pickingAvatar = false
+    @State private var avatarItem: PhotosPickerItem?
+    @State private var uploadingAvatar = false
 
     private static func demo(_ scene: String) -> Bool {
         #if DEBUG
@@ -21,10 +26,20 @@ struct SettingsView: View {
             List {
                 Section {
                     HStack(spacing: 14) {
-                        AvatarView(name: model.user?.displayName ?? "我", url: model.user?.avatarUrl, size: 52)
-                        VStack(alignment: .leading) {
+                        // 点头像换：从相册选，或去掉回到名字首字
+                        Menu {
+                            Button { pickingAvatar = true } label: { Label("从相册选一张", systemImage: "photo.on.rectangle") }
+                            if model.user?.avatarUrl != nil {
+                                Button(role: .destructive) { Task { await removeAvatar() } } label: { Label("去掉头像", systemImage: "trash") }
+                            }
+                        } label: {
+                            avatar
+                        }
+                        .accessibilityLabel("更换头像")
+                        VStack(alignment: .leading, spacing: 2) {
                             Text(model.user?.displayName ?? "").font(.pf(.headline))
                             Text(model.user?.phoneMasked ?? "").font(.pf(.footnote)).foregroundStyle(.secondary)
+                            Text("点头像可以更换").font(.pf(.caption)).foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -56,6 +71,11 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("我的")
+            .photosPicker(isPresented: $pickingAvatar, selection: $avatarItem, matching: .images)
+            .onChange(of: avatarItem) { _, item in
+                guard let item else { return }
+                Task { await uploadAvatar(item) }
+            }
             .navigationDestination(isPresented: $showHomePlaces) { HomePlacesView() }
             .navigationDestination(isPresented: $showMyCode) { MyCodeView() }
             .confirmationDialog("删除后所有连接、授权和位置记录立即删除，不能恢复。", isPresented: $confirmDelete, titleVisibility: .visible) {
@@ -67,6 +87,48 @@ struct SettingsView: View {
                 }
             }
         }
+    }
+
+    private var avatar: some View {
+        AvatarView(name: model.user?.displayName ?? "我", url: model.user?.avatarUrl, size: 60)
+            .overlay {
+                if uploadingAvatar {
+                    Circle().fill(.black.opacity(0.35))
+                    ProgressView().tint(.white)
+                }
+            }
+            .overlay(alignment: .bottomTrailing) {
+                Image(systemName: "camera.fill")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.white)
+                    .frame(width: 22, height: 22)
+                    .background(Theme.accent, in: Circle())
+                    .overlay(Circle().stroke(Color(.secondarySystemGroupedBackground), lineWidth: 2))
+            }
+    }
+
+    private func uploadAvatar(_ item: PhotosPickerItem) async {
+        defer { avatarItem = nil; uploadingAvatar = false }
+        uploadingAvatar = true
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let image = UIImage(data: data),
+              let jpeg = AvatarImage.squareJPEG(image) else {
+            model.toast = "这张图片读不出来，换一张试试"
+            return
+        }
+        #if DEBUG
+        if DemoMode.scene != nil { model.toast = "演示模式不上传头像"; return }
+        #endif
+        do {
+            model.user = try await model.api.uploadAvatar(jpeg: jpeg)
+            model.toast = "头像换好了"
+        } catch {
+            model.toast = error.localizedDescription
+        }
+    }
+
+    private func removeAvatar() async {
+        do { model.user = try await model.api.removeAvatar() } catch { model.toast = error.localizedDescription }
     }
 }
 
@@ -214,5 +276,29 @@ struct HomePlacesView: View {
     private func save() {
         HomePlaceStore.save(places)
         WatchBridge.shared.send(.homePlaces(places))
+    }
+}
+
+/// 头像图片：从中间裁成正方形、缩到 512px，压成 JPEG（服务端上限 300KB）
+enum AvatarImage {
+    static let side: CGFloat = 512
+
+    static func squareJPEG(_ image: UIImage) -> Data? {
+        let w = image.size.width, h = image.size.height
+        guard w > 0, h > 0 else { return nil }
+        let s = min(w, h)
+        let scale = min(1, side / s)
+        let out = CGSize(width: (s * scale).rounded(), height: (s * scale).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let img = UIGraphicsImageRenderer(size: out, format: format).image { _ in
+            // 按比例画整张图，让中间那块正方形落在画布上
+            let drawSize = CGSize(width: w * scale, height: h * scale)
+            image.draw(in: CGRect(x: (out.width - drawSize.width) / 2, y: (out.height - drawSize.height) / 2, width: drawSize.width, height: drawSize.height))
+        }
+        for q in [0.82, 0.7, 0.55, 0.4] {
+            if let d = img.jpegData(compressionQuality: q), d.count <= 280 * 1024 { return d }
+        }
+        return nil
     }
 }
