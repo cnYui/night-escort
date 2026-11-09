@@ -47,23 +47,25 @@ struct ScannerScreen: View {
                 }
             }
             VStack {
-                HStack {
-                    Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 17, weight: .semibold)).frame(width: 22, height: 22) }
-                        .glassButton()
-                        .buttonBorderShape(.circle)
-                        .controlSize(.large)
-                        .accessibilityLabel("关闭")
-                    Spacer()
+                // 标题按整屏居中，关闭按钮压在左边，不会把标题挤偏
+                ZStack {
                     Text("扫一扫").font(.pf(.headline))
-                    Spacer()
-                    Color.clear.frame(width: 44, height: 44)
+                    HStack {
+                        Button { dismiss() } label: { Image(systemName: "xmark").font(.system(size: 17, weight: .semibold)).frame(width: 22, height: 22) }
+                            .glassButton()
+                            .buttonBorderShape(.circle)
+                            .controlSize(.large)
+                            .accessibilityLabel("关闭")
+                        Spacer()
+                    }
                 }
                 .padding(.horizontal, 16)
                 Spacer()
                 if let hint {
                     Text(hint).font(.pf(.subheadline)).padding(.horizontal, 14).padding(.vertical, 8).background(.black.opacity(0.6), in: Capsule())
                 }
-                HStack(alignment: .top, spacing: 44) {
+                // 三个按钮等宽三等分，不按文字宽度排
+                HStack(alignment: .top, spacing: 0) {
                     tool("手电筒", systemImage: torch ? "flashlight.on.fill" : "flashlight.off.fill") { toggleTorch() }
                     PhotosPicker(selection: $photo, matching: .images) { toolLabel("相册", systemImage: "photo") }
                     tool("我的二维码", systemImage: "qrcode") { showMyCode = true }
@@ -120,6 +122,7 @@ struct ScannerScreen: View {
                 .glassBackground(in: Circle())
             Text(title).font(.pf(.caption))
         }
+        .frame(width: 96)
     }
 
     private func handle(_ payload: String) {

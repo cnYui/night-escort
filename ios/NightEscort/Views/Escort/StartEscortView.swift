@@ -191,30 +191,57 @@ struct StartEscortView: View {
     }
 }
 
-/// 地图选点：默认定在当前位置，可以拖动地图；画出范围圈
+/**
+ 地图选点：开始时定位一次（有定位权限就到当前位置，没有就停在一个默认城市），拖动地图让中间的图钉对准家。
+ 范围圈画在屏幕中间、跟图钉一起，不放进地图内容里：之前用 MapCircle 跟着相机中心走，
+ 再加上没定位权限时 .automatic 会把镜头对准地图内容，于是“镜头动 → 圈动 → 镜头又动”，主线程卡死（11-09 在模拟器上抓到）。
+ 现在地图内容不随镜头变化，镜头停下来（.onEnd）才记一次中心点和比例尺。
+ */
 struct PlacePicker: View {
     @Environment(\.dismiss) private var dismiss
     let title: String
     let initial: HomePlace?
     let onDone: (HomePlace?) -> Void
 
-    @State private var position: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var position: MapCameraPosition = .userLocation(fallback: .region(PlacePicker.fallbackRegion))
     @State private var center: CLLocationCoordinate2D?
+    /// 地图上 1pt 代表多少米，用来把范围（米）换成屏幕上圈的大小
+    @State private var metersPerPoint: Double?
     @State private var name = ""
     @State private var radius: Double = 150
+
+    /// 没有定位权限时先停在这里（上海市区），用户自己拖过去
+    static let fallbackRegion = MKCoordinateRegion(
+        center: CLLocationCoordinate2D(latitude: 31.2304, longitude: 121.4737),
+        latitudinalMeters: 1200,
+        longitudinalMeters: 1200
+    )
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                ZStack {
-                    Map(position: $position) {
-                        if let c = center {
-                            MapCircle(center: c, radius: radius).foregroundStyle(Theme.accent.opacity(0.15)).stroke(Theme.accent, lineWidth: 1.5)
+                GeometryReader { geo in
+                    ZStack {
+                        Map(position: $position) {
+                            UserAnnotation()
                         }
-                        UserAnnotation()
+                        .onMapCameraChange(frequency: .onEnd) { ctx in
+                            center = ctx.region.center
+                            if geo.size.height > 0 {
+                                metersPerPoint = ctx.region.span.latitudeDelta * 111_320 / geo.size.height
+                            }
+                        }
+                        if let mpp = metersPerPoint, mpp > 0 {
+                            let d = min(max(2 * radius / mpp, 12), max(geo.size.width, geo.size.height) * 2)
+                            Circle()
+                                .fill(Theme.accent.opacity(0.15))
+                                .overlay(Circle().stroke(Theme.accent, lineWidth: 1.5))
+                                .frame(width: d, height: d)
+                                .allowsHitTesting(false)
+                        }
+                        Image(systemName: "mappin").font(.largeTitle).foregroundStyle(Theme.danger).offset(y: -16)
+                            .allowsHitTesting(false)
                     }
-                    .onMapCameraChange(frequency: .continuous) { ctx in center = ctx.region.center }
-                    Image(systemName: "mappin").font(.largeTitle).foregroundStyle(Theme.danger).offset(y: -16)
                 }
                 Form {
                     TextField("名字，比如 家、宿舍、朋友家", text: $name)
