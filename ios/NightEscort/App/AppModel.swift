@@ -29,8 +29,17 @@ final class AppModel: ObservableObject {
 
     private var pushToken: String?
     private var refreshTask: Task<Void, Never>?
+    /// 前台时一直连着的实时通道（见 RealtimeClient.swift 里的 EventsClient）
+    private let events = EventsClient()
 
     private init() {
+        #if DEBUG
+        // 界面自动化测试：启动参数 -uiTestReset YES 从未登录状态开始
+        if UserDefaults.standard.bool(forKey: "uiTestReset") {
+            KeychainTokenStore().save(nil)
+            for key in [Self.lastPasteboardChangeKey, Self.handledInvitesKey] { UserDefaults.standard.removeObject(forKey: key) }
+        }
+        #endif
         api = APIClient(baseURL: AppConfig.apiBaseURL, tokens: KeychainTokenStore(), device: DeviceInfo(kind: .iphone, appVersion: AppConfig.appVersion))
         signedIn = api.isSignedIn
         api.onSignedOut = { [weak self] in
@@ -38,6 +47,9 @@ final class AppModel: ObservableObject {
         }
         location.onHomePrompt = { [weak self] place in
             Task { @MainActor in self?.showHomePrompt(place) }
+        }
+        events.onRefresh = { [weak self] what, ownerId in
+            Task { @MainActor in await self?.handleRealtimeRefresh(what: what, ownerId: ownerId) }
         }
         #if DEBUG
         if let scene = DemoMode.scene { loadDemo(scene) }
@@ -80,8 +92,14 @@ final class AppModel: ObservableObject {
         #endif
         checkPasteboardForInvite()
         guard signedIn else { return }
+        events.start(api: api)
         await reportDevice(opened: true)
         await refreshAll()
+    }
+
+    /// 退到后台就断开实时通道，靠推送；回到前台在 appBecameActive 里重连并整体刷新
+    func appEnteredBackground() {
+        events.stop()
     }
 
     func didLogin(_ outcome: LoginOutcome) async {
@@ -99,6 +117,7 @@ final class AppModel: ObservableObject {
     }
 
     private func didSignOut() {
+        events.stop()
         signedIn = false
         user = nil
         connections = []
@@ -163,6 +182,26 @@ final class AppModel: ObservableObject {
         // 有人联系不上且我已经接手：常驻框要一直挂着
         if alertIncident == nil, let card = c.first(where: { $0.status == .alerting && $0.incident?.contactingByMe == true }), let id = card.incident?.id {
             Task { await openIncident(id: id) }
+        }
+    }
+
+    // MARK: 实时通道
+
+    /// 服务端说某次回家或事件变了：是我自己的就刷新我的回家，是我守护的人的就刷新守护页
+    func handleRealtimeRefresh(what: String, ownerId: String?) async {
+        let mine = ownerId != nil && ownerId == user?.id
+        if ownerId == nil || mine { await refreshEscort() }
+        guard ownerId == nil || !mine else { return }
+        let known = Set(cards.compactMap { $0.incident?.id })
+        await refreshGuarding()
+        // 别的守护人已经确认她安全：我这边挂着的提醒框收起来（和收到 incident_closed 推送一样）
+        if let open = alertIncident, !cards.contains(where: { $0.incident?.id == open.id }) {
+            closeAlert()
+        }
+        // 和前台收到 incident_ring 推送一样：新出现的联系不上或求救，还没人接手，直接弹出来
+        if alertIncident == nil, UIApplication.shared.applicationState == .active,
+           let inc = cards.first(where: { $0.status == .alerting && $0.incident.map { !known.contains($0.id) && $0.contactingName == nil } == true })?.incident {
+            await openIncident(id: inc.id)
         }
     }
 

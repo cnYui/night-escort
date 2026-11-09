@@ -3,6 +3,10 @@ import Foundation
 enum AppConfig {
     /// 后端地址，来自 Info.plist 的 NEApiBaseURL（project.yml 里的 API_BASE_URL 构建设置）
     static var apiBaseURL: URL {
+        #if DEBUG
+        // 联调和界面自动化测试：启动参数 -apiBaseURL http://localhost:8090 指向别的后端
+        if let s = UserDefaults.standard.string(forKey: "apiBaseURL"), let u = URL(string: s) { return u }
+        #endif
         let s = Bundle.main.object(forInfoDictionaryKey: "NEApiBaseURL") as? String ?? "https://api.example.com"
         return URL(string: s) ?? URL(string: "https://api.example.com")!
     }
