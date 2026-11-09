@@ -80,7 +80,7 @@ public enum JSON {
     }
 }
 
-/// 到家没后端客户端。访问令牌过期时自动用刷新令牌换一次。
+/// 安全回家后端客户端。访问令牌过期时自动用刷新令牌换一次。
 public final class APIClient: @unchecked Sendable {
     public let baseURL: URL
     public let tokens: TokenStore

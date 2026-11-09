@@ -85,7 +85,7 @@ struct HomeView: View {
                     .padding(.bottom, 80)
                 }
             }
-            .navigationTitle("到家没")
+            .navigationTitle("安全回家")
             .navigationBarTitleDisplayMode(.inline)
             .refreshable { await model.refreshAll() }
             .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }

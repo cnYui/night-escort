@@ -40,7 +40,7 @@ targets:
     info:
       path: NightEscort/Info.plist
       properties:
-        CFBundleDisplayName: 到家没
+        CFBundleDisplayName: 安全回家
         NEApiBaseURL: $(API_BASE_URL)
         NEInviteHost: $(INVITE_HOST)
         UILaunchScreen: {}
@@ -73,7 +73,7 @@ targets:
     info:
       path: NightEscortWidgets/Info.plist
       properties:
-        CFBundleDisplayName: 到家没
+        CFBundleDisplayName: 安全回家
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -91,7 +91,7 @@ targets:
     info:
       path: NightEscortWatch/Info.plist
       properties:
-        CFBundleDisplayName: 到家没
+        CFBundleDisplayName: 安全回家
         WKApplication: true
         WKCompanionAppBundleIdentifier: app.nightescort.ios
         WKBackgroundModes: [location]

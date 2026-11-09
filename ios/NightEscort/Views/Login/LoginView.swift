@@ -47,7 +47,7 @@ struct LoginView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("到家没").font(.largeTitle.bold())
+                    Text("安全回家").font(.largeTitle.bold())
                     Text("回家路上，有人一直在").foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 24)
