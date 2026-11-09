@@ -55,7 +55,12 @@ final class AppModel: ObservableObject {
         switch scene {
         case "active": escort = DemoData.escort("active")
         case "sos": escort = DemoData.escort("alerting", sos: true)
-        case "incident": alertIncident = DemoData.incident
+        case "incident":
+            // 全屏弹窗要等界面出来后再设值，首帧前就有值不会弹出
+            Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(600))
+                alertIncident = DemoData.incident
+            }
         default: break
         }
     }

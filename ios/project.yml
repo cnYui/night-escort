@@ -41,6 +41,8 @@ targets:
     info:
       path: NightEscort/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         NEApiBaseURL: $(API_BASE_URL)
         NEInviteHost: $(INVITE_HOST)
@@ -75,6 +77,8 @@ targets:
     info:
       path: NightEscortWidgets/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -94,6 +98,8 @@ targets:
     info:
       path: NightEscortWatch/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         WKApplication: true
         WKCompanionAppBundleIdentifier: app.nightescort.ios

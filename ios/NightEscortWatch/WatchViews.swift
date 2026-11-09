@@ -42,6 +42,29 @@ struct WLabel: View {
     }
 }
 
+/// 页头：左边小标签，右边图标，放一行，省出高度让主按钮第一屏就能看全
+struct WHeader: View {
+    let text: String
+    var color: Color = WTheme.accent
+    var dot = false
+    let systemName: String
+    var iconColor: Color = WTheme.accent
+    var body: some View {
+        HStack(alignment: .center) {
+            WLabel(text: text, color: color, dot: dot)
+            Spacer(minLength: 0)
+            WIcon(systemName: systemName, size: 22, color: iconColor)
+        }
+    }
+}
+
+extension View {
+    /// 页面内容：靠左铺满，两侧留边
+    func wPage() -> some View {
+        self.frame(maxWidth: .infinity, alignment: .leading).padding(.horizontal, 8)
+    }
+}
+
 extension Text {
     /// 手表大标题
     func wTitle(_ size: CGFloat = 20) -> some View {
@@ -104,15 +127,14 @@ struct SignInView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "安全回家")
-                WIcon(systemName: "iphone", size: 40)
+                WHeader(text: "安全回家", systemName: "iphone")
                 Text("在 iPhone 上\n登录一下").wTitle()
                 Text("登录后手表会自动同步").wSub()
                 Button { model.requestTokensFromPhone() } label: { Text("重试").wButton() }
                     .glassButton()
                     .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
     }
 }
@@ -126,9 +148,8 @@ struct IdleView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "安全回家")
-                WIcon(systemName: "moon.stars.fill", size: 40)
-                Text("今晚\n平安到家").wTitle(22)
+                WHeader(text: "安全回家", systemName: "moon.stars.fill")
+                Text("今晚平安到家").wTitle(20)
                 Text(hint ? "按住 1 秒才会开始" : "用手机上的默认担保人").wSub()
                 Button {
                     // 轻点不开始，只提示要按住，防止抬手误触
@@ -156,7 +177,7 @@ struct IdleView: View {
                 .padding(.top, 4)
                 WSOSHoldButton()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
     }
 }
@@ -240,10 +261,6 @@ struct EscortRunningView: View {
                         ProgressView(value: progress(now: ctx.date))
                             .tint(WTheme.accent)
                             .accessibilityHidden(true)
-                        HStack(spacing: 6) {
-                            StatTile(value: Display.countdown(to: ctx.date, now: escort.startedAt), label: "已护航")
-                            StatTile(value: "\(escort.guardians.count) 人", label: "在守")
-                        }
                     }
                 }
                 Button { Task { await model.checkin() } } label: { Text("我没事").wButton() }
@@ -253,6 +270,12 @@ struct EscortRunningView: View {
                 Button { Task { await model.checkin(.arrived) } } label: { Text("到了，结束").wButton() }
                     .glassButton()
                     .disabled(model.busy)
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    HStack(spacing: 6) {
+                        StatTile(value: Display.countdown(to: ctx.date, now: escort.startedAt), label: "已护航")
+                        StatTile(value: "\(escort.guardians.count) 人", label: "在守")
+                    }
+                }
                 Button { confirmEnd = true } label: {
                     Text("结束护航").font(.pf(size: 15)).frame(maxWidth: .infinity)
                 }
@@ -261,7 +284,7 @@ struct EscortRunningView: View {
                 .padding(.vertical, 4)
                 WSOSHoldButton()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
         .confirmationDialog("结束这次护航？", isPresented: $confirmEnd) {
             Button("结束", role: .destructive) { Task { await model.end() } }
@@ -310,16 +333,15 @@ struct PausedView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "已暂停", color: WTheme.sub, dot: true)
-                WIcon(systemName: "pause.circle.fill", size: 40)
-                Text(escort.pausedUntil.map { "暂停到\n\(Display.hhmm($0))" } ?? "已暂停").wTitle()
+                WHeader(text: "已暂停", color: WTheme.sub, dot: true, systemName: "pause.circle.fill")
+                Text(escort.pausedUntil.map { "暂停到 \(Display.hhmm($0))" } ?? "已暂停").wTitle()
                 Text("在别处过夜 · 担保人已知道").wSub()
                 Button { confirmEnd = true } label: { Text("结束护航").wButton() }
                     .glassButton()
                     .disabled(model.busy)
                     .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
         .confirmationDialog("结束这次护航？", isPresented: $confirmEnd) {
             Button("结束", role: .destructive) { Task { await model.end() } }
@@ -338,8 +360,7 @@ struct AlertingView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: isSOS ? "已发出求救" : "需要你回应", color: WTheme.danger, dot: true)
-                WIcon(systemName: isSOS ? "sos.circle.fill" : "bell.fill", size: 40, color: WTheme.danger)
+                WHeader(text: isSOS ? "已发出求救" : "需要你回应", color: WTheme.danger, dot: true, systemName: isSOS ? "sos.circle.fill" : "bell.fill", iconColor: WTheme.danger)
                 TimelineView(.periodic(from: .now, by: 1)) { ctx in
                     if let due = escort.nextDueAt, due < ctx.date {
                         Text("已超时 \(Display.countdown(to: ctx.date, now: due))")
@@ -348,7 +369,7 @@ struct AlertingView: View {
                             .foregroundStyle(WTheme.danger)
                     }
                 }
-                Text("担保人正在\n联系你").wTitle(21)
+                Text("担保人正在联系你").wTitle(20)
                 if isSOS {
                     Text("安全了就点“我没事”解除").wSub()
                 }
@@ -360,7 +381,7 @@ struct AlertingView: View {
                     .glassButton()
                     .disabled(model.busy)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
     }
 }
@@ -374,8 +395,7 @@ struct HomeAskView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "到家了？")
-                WIcon(systemName: "house.fill", size: 40)
+                WHeader(text: "到家了？", systemName: "house.fill")
                 Text("检测到你\n已经到\(place)").wTitle()
                 Text("安全到家了吗？").wSub()
                 Button { Task { await model.answerHome(arrived: true) } } label: { Text("到了，结束护航").wButton() }
@@ -384,7 +404,7 @@ struct HomeAskView: View {
                 Button { Task { await model.answerHome(arrived: false) } } label: { Text("还没，继续").wButton() }
                     .glassButton()
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
         .font(.pf(.body))
     }
@@ -399,14 +419,13 @@ struct MessageView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "提示")
-                WIcon(systemName: "info.circle.fill", size: 40)
+                WHeader(text: "提示", systemName: "info.circle.fill")
                 Text(text).wTitle(17)
                 Button { model.message = nil } label: { Text("好").wButton() }
                     .glassButton()
                     .padding(.top, 4)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .wPage()
         }
         .font(.pf(.body))
     }
