@@ -66,7 +66,8 @@ set +e
 TEST_RUNNER_NE_API_BASE_URL="http://localhost:$PORT" TEST_RUNNER_NE_SMS_TEST_CODE=$CODE \
   xcodebuild test -project NightEscort.xcodeproj -scheme NightEscortUITests \
   -destination "id=$SIM" -resultBundlePath "$OUT/result.xcresult" \
-  CODE_SIGNING_ALLOWED=NO > "$OUT/xcodebuild.log" 2>&1
+  CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER= \
+  > "$OUT/xcodebuild.log" 2>&1
 STATUS=$?
 set -e
 grep -E "error:|failed|passed|Executed|TEST (SUCCEEDED|FAILED)" "$OUT/xcodebuild.log" | tail -20

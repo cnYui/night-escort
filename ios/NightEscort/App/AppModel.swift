@@ -34,10 +34,13 @@ final class AppModel: ObservableObject {
 
     private init() {
         #if DEBUG
-        // 界面自动化测试：启动参数 -uiTestReset YES 从未登录状态开始
-        if UserDefaults.standard.bool(forKey: "uiTestReset") {
+        // 界面自动化测试：启动参数 -uiTestReset <本轮编号> 从未登录状态开始。
+        // 同一个编号只清一次，测试中途 App 被重新拉起（比如点邀请链接）时不会把刚登录的状态清掉。
+        if let run = UserDefaults.standard.string(forKey: "uiTestReset"), !run.isEmpty,
+           UserDefaults.standard.string(forKey: "uiTestResetDone") != run {
             KeychainTokenStore().save(nil)
             for key in [Self.lastPasteboardChangeKey, Self.handledInvitesKey] { UserDefaults.standard.removeObject(forKey: key) }
+            UserDefaults.standard.set(run, forKey: "uiTestResetDone")
         }
         #endif
         api = APIClient(baseURL: AppConfig.apiBaseURL, tokens: KeychainTokenStore(), device: DeviceInfo(kind: .iphone, appVersion: AppConfig.appVersion))

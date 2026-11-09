@@ -21,7 +21,7 @@ final class MVPFlowTests: XCTestCase {
         app = XCUIApplication()
         app.launchArguments += [
             "-apiBaseURL", base.absoluteString,
-            "-uiTestReset", "YES",
+            "-uiTestReset", UUID().uuidString,
             "-locationNoteShown", "YES",
             "-AppleLanguages", "(zh-Hans)",
             "-AppleLocale", "zh_CN",
@@ -82,12 +82,13 @@ final class MVPFlowTests: XCTestCase {
         shot("首页（还没有好友）")
 
         // 2. 好友发来邀请链接，点开后加为好友（长期互相守护）
-        // app.open 可能会重新拉起 App，这时不能再带 -uiTestReset，不然刚登录的状态被清掉
-        if let i = app.launchArguments.firstIndex(of: "-uiTestReset") {
-            app.launchArguments.removeSubrange(i...min(i + 1, app.launchArguments.count - 1))
-        }
+        // 像用户在别的 App 里点链接一样，由系统打开（-uiTestReset 同一轮只清一次，重新拉起也不会掉登录）
         let invite = try await ke.api.createInvite(kind: .standing)
-        app.open(URL(string: "\(InviteLink.appScheme)://i/\(invite.token)")!)
+        XCUIDevice.shared.system.open(URL(string: "\(InviteLink.appScheme)://i/\(invite.token)")!)
+        let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
+        for label in ["打开", "Open"] where springboard.buttons[label].waitForExistence(timeout: 2) {
+            springboard.buttons[label].tap(); break
+        }
         let add = app.buttons["加为好友"]
         XCTAssertTrue(add.waitForExistence(timeout: 15), "点邀请链接没弹出名片")
         shot("好友名片")

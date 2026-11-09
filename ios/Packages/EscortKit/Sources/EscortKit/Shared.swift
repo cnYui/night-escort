@@ -96,7 +96,11 @@ public final class KeychainTokenStore: TokenStore, @unchecked Sendable {
         q[kSecValueData as String] = data
         // 锁屏后台也要能用（通知按钮“我没事”在后台发请求）
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(q as CFDictionary, nil)
+        let status = SecItemAdd(q as CFDictionary, nil)
+        if status != errSecSuccess {
+            // 常见是 -34018（没签名、缺钥匙串权限），这时下次启动就读不到登录状态
+            NSLog("KeychainTokenStore: 保存登录令牌失败 OSStatus=%d", status)
+        }
     }
 }
 
@@ -128,7 +132,11 @@ public enum HomePlaceStore {
         var q = base
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        SecItemAdd(q as CFDictionary, nil)
+        let status = SecItemAdd(q as CFDictionary, nil)
+        if status != errSecSuccess {
+            // 常见是 -34018（没签名、缺钥匙串权限），这时下次启动就读不到登录状态
+            NSLog("KeychainTokenStore: 保存登录令牌失败 OSStatus=%d", status)
+        }
     }
 }
 #endif
