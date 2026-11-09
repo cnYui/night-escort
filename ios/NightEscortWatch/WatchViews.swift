@@ -420,11 +420,24 @@ struct MessageView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WHeader(text: "提示", systemName: "info.circle.fill")
+                if model.offerEmergencyCall {
+                    WHeader(text: "求救没发出去", color: WTheme.danger, systemName: "exclamationmark.triangle.fill", iconColor: WTheme.danger)
+                } else {
+                    WHeader(text: "提示", systemName: "info.circle.fill")
+                }
                 Text(text).wTitle(17)
-                Button { model.message = nil } label: { Text("好").wButton() }
-                    .glassButton()
+                if model.offerEmergencyCall {
+                    Button { model.callEmergency() } label: {
+                        Label("拨打 110", systemImage: "phone.fill")
+                            .font(.pf(size: 16, weight: .semibold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .glassProminentButton(tint: WTheme.danger)
                     .padding(.top, 4)
+                }
+                Button { model.message = nil } label: { Text(model.offerEmergencyCall ? "关闭" : "好").wButton() }
+                    .glassButton()
+                    .padding(.top, model.offerEmergencyCall ? 0 : 4)
             }
             .wPage()
         }

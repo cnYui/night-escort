@@ -7,7 +7,7 @@ import Foundation
  启动参数 `-demoScene <名字>`，例如：
    xcrun simctl launch booted app.nightescort.ios -demoScene home
  iPhone：login / home / start / active / sos / guarding / incident / me
- 手表：signin / idle / running / paused / alerting / sos / home / message
+ 手表：signin / idle / running / paused / alerting / sos / sosfail / home / message
  */
 enum DemoMode {
     static var scene: String? {
