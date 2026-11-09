@@ -36,13 +36,12 @@ struct StartEscortView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: chosen.contains(c.id) ? "checkmark.circle.fill" : "circle")
                                         .foregroundStyle(chosen.contains(c.id) ? Theme.accent : .secondary)
-                                    AvatarView(name: c.guardian.displayName, url: c.guardian.avatarUrl, size: 36,
-                                               tint: c.tier == .temporary ? Theme.temporary : Theme.accent)
+                                    AvatarView(name: c.guardian.displayName, url: c.guardian.avatarUrl, size: 36)
                                     VStack(alignment: .leading, spacing: 2) {
                                         HStack { Text(c.guardian.displayName); TierBadge(tier: c.tier) }
-                                        Text(c.canSee).font(.caption).foregroundStyle(.secondary)
+                                        Text(c.canSee).font(.pf(.caption)).foregroundStyle(.secondary)
                                         if let w = c.readiness?.warning {
-                                            Text(w).font(.caption).foregroundStyle(Theme.danger)
+                                            Text(w).font(.pf(.caption)).foregroundStyle(Theme.danger)
                                         }
                                     }
                                 }
@@ -68,7 +67,7 @@ struct StartEscortView: View {
                         .onChange(of: destination) { _, d in if d == .other { pickingPlace = true } }
                         if homePlaces.isEmpty {
                             NavigationLink("设置家的位置，到家时提醒你结束") { HomePlacesView() }
-                                .font(.footnote)
+                                .font(.pf(.footnote))
                         }
                     } footer: {
                         Text("到了这个地方会问你“到了吗”。地点只存在这台手机上。")
@@ -84,13 +83,16 @@ struct StartEscortView: View {
             .navigationTitle("开始护航")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) {
+                    Button { dismiss() } label: { Image(systemName: "xmark") }.accessibilityLabel("取消")
+                }
             }
             .safeAreaInset(edge: .bottom) {
                 AsyncButton { try await start() } label: {
-                    Text(allNotReady ? "选中的人都可能收不到通知" : "开始").frame(maxWidth: .infinity)
+                    Text(allNotReady ? "选中的人都可能收不到通知" : "开始").font(.pf(.headline)).frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PrimaryButtonStyle())
+                .glassProminentButton()
+                .controlSize(.large)
                 .disabled(chosen.isEmpty || allNotReady)
                 .padding()
             }
@@ -119,6 +121,15 @@ struct StartEscortView: View {
     }
 
     private func load() async {
+        #if DEBUG
+        if DemoMode.scene != nil {
+            let o = DemoData.startOptions
+            options = o
+            interval = o.defaultInterval
+            chosen = Set(o.candidates.filter(\.defaultChecked).map(\.id))
+            return
+        }
+        #endif
         do {
             let o = try await model.api.startOptions()
             options = o

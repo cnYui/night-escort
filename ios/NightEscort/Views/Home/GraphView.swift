@@ -63,9 +63,9 @@ struct GraphView: View {
             ZStack {
                 if nodes.isEmpty {
                     VStack(spacing: 8) {
-                        Text("点 + 加一个你信任的人").font(.headline)
+                        Text("点 + 加一个你信任的人").font(.pf(.headline))
                         Text("加进来的人不会看到你的位置，只有你护航时选中的人才能看到。")
-                            .font(.footnote).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                            .font(.pf(.footnote)).foregroundStyle(.secondary).multilineTextAlignment(.center)
                     }
                     .padding(.horizontal, 40)
                     .offset(y: size * 0.32)
@@ -104,12 +104,12 @@ struct GraphView: View {
                         )
                 }
                 VStack(spacing: 4) {
-                    AvatarView(name: me, size: 64)
-                    Text("我").font(.caption.bold())
+                    AvatarView(name: me, size: 64, tint: Theme.accent)
+                    Text("我").font(.pf(.caption, weight: .semibold))
                 }
                 .position(center)
                 if !rest.isEmpty {
-                    Text("全部 \(connections.count) 人").font(.caption).foregroundStyle(.secondary)
+                    Text("全部 \(connections.count) 人").font(.pf(.caption)).foregroundStyle(.secondary)
                         .position(x: center.x, y: geo.size.height - 12)
                 }
             }
@@ -133,19 +133,22 @@ private struct NodeView: View {
         let isGuardian = c.guardsMe != nil
         VStack(spacing: 3) {
             ZStack(alignment: .topTrailing) {
-                AvatarView(name: c.shownName, url: c.peer.avatarUrl, size: isGuardian ? 50 : 30,
-                           tint: c.guardsMe?.tier == .temporary ? Theme.temporary : (isGuardian ? Theme.accent : .gray))
+                AvatarView(name: c.shownName, url: c.peer.avatarUrl, size: isGuardian ? 50 : 30)
+                    .padding(3)
                     .overlay(Circle().stroke(chosen ? Theme.accent : .clear, lineWidth: 2.5))
                 if c.guardsMe?.tier == .temporary {
-                    Image(systemName: "hourglass").font(.caption2.bold())
-                        .padding(3).background(Theme.temporary, in: Circle()).foregroundStyle(.white)
+                    Image(systemName: "hourglass").font(.system(size: 9, weight: .bold))
+                        .frame(width: 18, height: 18)
+                        .background(Theme.temporary, in: Circle())
+                        .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
+                        .foregroundStyle(.white)
                 }
             }
-            Text(c.shownName).font(.caption)
+            Text(c.shownName).font(.pf(.caption))
             if c.guardsMe?.tier == .temporary, c.guardsMe?.bindToEscort == true {
-                Text("到家失效").font(.caption2).foregroundStyle(Theme.temporary)
+                Text("到家失效").font(.pf(.caption2)).foregroundStyle(Theme.temporary)
             } else if let note = node.note {
-                Text(note).font(.caption2).foregroundStyle(.secondary)
+                Text(note).font(.pf(.caption2)).foregroundStyle(.secondary)
             }
         }
         .opacity(node.opacity)

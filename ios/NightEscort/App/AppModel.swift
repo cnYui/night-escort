@@ -39,11 +39,34 @@ final class AppModel: ObservableObject {
         location.onHomePrompt = { [weak self] place in
             Task { @MainActor in self?.showHomePrompt(place) }
         }
+        #if DEBUG
+        if let scene = DemoMode.scene { loadDemo(scene) }
+        #endif
     }
+
+    #if DEBUG
+    /// 演示模式：不连后端，直接摆出某个界面（见 Shared/DemoData.swift）
+    private func loadDemo(_ scene: String) {
+        guard scene != "login" else { signedIn = false; return }
+        signedIn = true
+        user = DemoData.user
+        connections = DemoData.connections
+        cards = DemoData.guardCards
+        switch scene {
+        case "active": escort = DemoData.escort("active")
+        case "sos": escort = DemoData.escort("alerting", sos: true)
+        case "incident": alertIncident = DemoData.incident
+        default: break
+        }
+    }
+    #endif
 
     // MARK: 生命周期
 
     func appBecameActive() async {
+        #if DEBUG
+        if DemoMode.scene != nil { return }
+        #endif
         guard signedIn else { return }
         await reportDevice(opened: true)
         await refreshAll()
@@ -77,6 +100,9 @@ final class AppModel: ObservableObject {
     }
 
     func refreshAll() async {
+        #if DEBUG
+        if DemoMode.scene != nil { return }
+        #endif
         async let u = try? api.me()
         async let c = try? api.connections()
         async let g = try? api.guarding()
@@ -89,6 +115,9 @@ final class AppModel: ObservableObject {
 
     /// 网络失败时保持原状，不能因为一次请求失败就停掉定位
     func refreshEscort() async {
+        #if DEBUG
+        if DemoMode.scene != nil { return }
+        #endif
         do {
             applyEscort(try await api.currentEscort())
         } catch {
@@ -97,6 +126,9 @@ final class AppModel: ObservableObject {
     }
 
     func refreshGuarding() async {
+        #if DEBUG
+        if DemoMode.scene != nil { return }
+        #endif
         if let g = try? await api.guarding() { applyCards(g) }
     }
 

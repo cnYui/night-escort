@@ -23,6 +23,7 @@ targets:
     platform: iOS
     sources:
       - NightEscort
+      - Shared
     dependencies:
       - package: EscortKit
       - target: NightEscortWidgets
@@ -66,6 +67,7 @@ targets:
     platform: iOS
     sources:
       - NightEscortWidgets
+      - Shared
     dependencies:
       - package: EscortKit
       - sdk: WidgetKit.framework
@@ -86,6 +88,7 @@ targets:
     platform: watchOS
     sources:
       - NightEscortWatch
+      - Shared
     dependencies:
       - package: EscortKit
     info:

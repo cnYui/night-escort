@@ -13,8 +13,8 @@ struct SettingsView: View {
                     HStack(spacing: 14) {
                         AvatarView(name: model.user?.displayName ?? "我", url: model.user?.avatarUrl, size: 52)
                         VStack(alignment: .leading) {
-                            Text(model.user?.displayName ?? "").font(.headline)
-                            Text(model.user?.phoneMasked ?? "").font(.footnote).foregroundStyle(.secondary)
+                            Text(model.user?.displayName ?? "").font(.pf(.headline))
+                            Text(model.user?.phoneMasked ?? "").font(.pf(.footnote)).foregroundStyle(.secondary)
                         }
                     }
                 }
@@ -75,18 +75,18 @@ struct WhoCanSeeMeView: View {
         List {
             if let d = data {
                 Section {
-                    Text(d.headline).font(.headline)
+                    Text(d.headline).font(.pf(.headline))
                 } footer: {
                     Text("不管常驻还是临时，护航之外谁都看不到你的位置。")
                 }
                 Section("有效的守护") {
                     ForEach(d.grants) { g in
                         VStack(alignment: .leading, spacing: 4) {
-                            HStack { Text(g.guardian.displayName).font(.headline); TierBadge(tier: g.tier) }
-                            Text(g.canSee).font(.subheadline)
-                            Text(g.expiryText).font(.caption).foregroundStyle(.secondary)
+                            HStack { Text(g.guardian.displayName).font(.pf(.headline)); TierBadge(tier: g.tier) }
+                            Text(g.canSee).font(.pf(.subheadline))
+                            Text(g.expiryText).font(.pf(.caption)).foregroundStyle(.secondary)
                             if let v = g.lastViewedAt {
-                                Text("最近一次查看你的位置：\(v.formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(.secondary)
+                                Text("最近一次查看你的位置：\(v.formatted(date: .abbreviated, time: .shortened))").font(.pf(.caption)).foregroundStyle(.secondary)
                             }
                         }
                         .swipeActions {
@@ -127,8 +127,8 @@ struct GuardingWhoView: View {
     var body: some View {
         List(list) { g in
             VStack(alignment: .leading, spacing: 4) {
-                HStack { Text(g.owner.displayName).font(.headline); TierBadge(tier: g.tier) }
-                Text("\(g.canSee) · \(g.expiryText)").font(.caption).foregroundStyle(.secondary)
+                HStack { Text(g.owner.displayName).font(.pf(.headline)); TierBadge(tier: g.tier) }
+                Text("\(g.canSee) · \(g.expiryText)").font(.pf(.caption)).foregroundStyle(.secondary)
             }
             .swipeActions {
                 Button("不再守护", role: .destructive) {
@@ -159,7 +159,7 @@ struct HomePlacesView: View {
                     Button { editing = p } label: {
                         VStack(alignment: .leading) {
                             Text(p.name).foregroundStyle(.primary)
-                            Text("范围 \(Int(p.radiusM)) 米").font(.caption).foregroundStyle(.secondary)
+                            Text("范围 \(Int(p.radiusM)) 米").font(.pf(.caption)).foregroundStyle(.secondary)
                         }
                     }
                 }

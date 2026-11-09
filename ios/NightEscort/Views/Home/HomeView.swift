@@ -20,27 +20,19 @@ struct HomeView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                HStack(spacing: 12) {
-                    Button { showSearch = true } label: {
-                        HStack {
-                            Image(systemName: "magnifyingglass")
-                            Text("搜索联系人").foregroundStyle(.secondary)
-                            Spacer()
-                        }
-                        .padding(10)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                Button { showSearch = true } label: {
+                    HStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+                        Text("搜索联系人").font(.pf(.body)).foregroundStyle(.secondary)
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
-                    Button { showAdd = true } label: {
-                        Image(systemName: "plus").font(.title3.weight(.semibold))
-                            .frame(width: 42, height: 42)
-                            .background(Theme.accent, in: Circle())
-                            .foregroundStyle(.white)
-                    }
-                    .accessibilityLabel("添加联系人")
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 11)
+                    .background(Color(.tertiarySystemFill), in: Capsule())
                 }
+                .buttonStyle(.plain)
                 .padding(.horizontal)
-                .padding(.top, 8)
+                .padding(.top, 4)
 
                 if let inter = model.escort?.intervention, model.escort?.status != .active {
                     InterventionBanner(text: inter.text)
@@ -60,9 +52,11 @@ struct HomeView: View {
                 } else {
                     HStack(alignment: .center, spacing: 14) {
                         Button { showStart = true } label: {
-                            Label("开始护航", systemImage: "moon.stars.fill").frame(maxWidth: .infinity)
+                            Label { Text("开始护航").font(.pf(.headline)) } icon: { Image(systemName: "moon.stars.fill") }
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(PrimaryButtonStyle())
+                        .glassProminentButton()
+                        .controlSize(.large)
                         SOSHoldButton { await model.sos() }
                     }
                     .padding()
@@ -86,7 +80,16 @@ struct HomeView: View {
                 }
             }
             .navigationTitle("安全回家")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showAdd = true } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("添加联系人")
+                }
+            }
+            #if DEBUG
+            .onAppear { if DemoMode.scene == "start" { showStart = true } }
+            #endif
             .refreshable { await model.refreshAll() }
             .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
@@ -119,7 +122,7 @@ struct InterventionBanner: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: "checkmark.shield.fill").foregroundStyle(Theme.accent)
-            Text(text).font(.subheadline)
+            Text(text).font(.pf(.subheadline))
             Spacer()
         }
         .padding()
@@ -135,41 +138,76 @@ struct ActiveEscortPanel: View {
     let escort: Escort
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: 12) {
             TimelineView(.periodic(from: .now, by: 1)) { ctx in
-                VStack(spacing: 4) {
-                    Text(Display.ownerHeadline(escort, now: ctx.date))
-                        .font(.subheadline)
-                        .foregroundStyle(escort.status == .alerting ? Theme.danger : .secondary)
-                    if escort.status == .active, let due = escort.nextDueAt {
-                        Text(Display.countdown(to: due, now: ctx.date))
-                            .font(.system(size: 44, weight: .semibold, design: .rounded))
-                            .monospacedDigit()
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack {
+                        Label {
+                            Text(statusTitle).font(.pf(.subheadline, weight: .semibold))
+                        } icon: {
+                            Image(systemName: escort.status == .alerting ? "exclamationmark.triangle.fill" : "circle.fill")
+                                .font(.system(size: escort.status == .alerting ? 13 : 7))
+                        }
+                        .foregroundStyle(escort.status == .alerting ? Theme.danger : Theme.accent)
+                        Spacer()
+                        Text("\(escort.guardians.count) 人在守").font(.pf(.subheadline)).foregroundStyle(.secondary)
                     }
-                    Text("\(escort.guardians.count) 人在守").font(.caption).foregroundStyle(.secondary)
+                    if escort.status == .active, let due = escort.nextDueAt {
+                        HStack(alignment: .lastTextBaseline, spacing: 10) {
+                            Text(Display.countdown(to: due, now: ctx.date))
+                                .font(.pf(size: 52, weight: .semibold))
+                                .monospacedDigit()
+                            Text("后签到 · \(Display.hhmm(due))").font(.pf(.subheadline)).foregroundStyle(.secondary)
+                        }
+                        ProgressView(value: progress(due: due, now: ctx.date))
+                    } else {
+                        Text(Display.ownerHeadline(escort, now: ctx.date))
+                            .font(.pf(.body))
+                            .foregroundStyle(escort.status == .alerting ? Theme.danger : .primary)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
-            HStack(alignment: .center, spacing: 12) {
+            HStack(alignment: .center, spacing: 10) {
                 AsyncButton { await model.checkin(.ok) } label: {
-                    Text("我没事").frame(maxWidth: .infinity)
+                    Text("我没事").font(.pf(.headline)).frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PrimaryButtonStyle(color: escort.status == .alerting ? Theme.danger : Theme.accent))
+                .glassProminentButton(tint: escort.status == .alerting ? Theme.danger : nil)
+                .controlSize(.large)
                 Menu {
                     Button("我到了，结束") { Task { await model.checkin(.arrived) } }
                     Button("我在别处过夜，结束") { Task { await model.checkin(.elsewhere) } }
                     Button("结束护航", role: .destructive) { Task { await model.endEscort() } }
                 } label: {
-                    Text("结束").font(.headline).frame(width: 76).padding(.vertical, 14)
-                        .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 14))
+                    Text("结束").font(.pf(.headline)).padding(.horizontal, 6)
                 }
+                .glassButton()
+                .controlSize(.large)
                 // 已经在求救了就不再显示
                 if escort.incident?.isSOS != true {
                     SOSHoldButton { await model.sos() }
                 }
             }
         }
-        .padding()
-        .background(.background)
+        .padding(20)
+        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .padding(.horizontal)
+        .padding(.bottom, 8)
+    }
+
+    private var statusTitle: String {
+        switch escort.status {
+        case .alerting: return escort.incident?.isSOS == true ? "已发出求救" : "需要你回应"
+        case .paused: return "已暂停"
+        default: return "护航中"
+        }
+    }
+
+    /// 这一轮签到间隔已经过去多少（0…1）
+    private func progress(due: Date, now: Date) -> Double {
+        guard escort.intervalMin > 0 else { return 0 }
+        let total = Double(escort.intervalMin * 60)
+        return min(1, max(0, 1 - max(0, due.timeIntervalSince(now)) / total))
     }
 }
 
@@ -186,7 +224,6 @@ struct SOSHoldButton: View {
     var body: some View {
         VStack(spacing: 3) {
             ZStack {
-                Circle().fill(Theme.danger.opacity(0.12))
                 Circle()
                     .trim(from: 0, to: progress)
                     .stroke(Theme.danger, style: StrokeStyle(lineWidth: 4, lineCap: .round))
@@ -195,11 +232,12 @@ struct SOSHoldButton: View {
                 if busy {
                     ProgressView().tint(Theme.danger)
                 } else {
-                    Text("SOS").font(.system(size: size * 0.28, weight: .heavy, design: .rounded))
+                    Text("SOS").font(.pf(size: size * 0.28, weight: .semibold))
                 }
             }
             .foregroundStyle(Theme.danger)
             .frame(width: size, height: size)
+            .glassBackground(in: Circle(), tint: Theme.danger)
             .contentShape(Circle())
             .onLongPressGesture(minimumDuration: Self.holdSeconds, maximumDistance: 40) {
                 fired = true
@@ -213,7 +251,7 @@ struct SOSHoldButton: View {
                     withAnimation(.easeOut(duration: 0.2)) { progress = 0 }
                 }
             }
-            Text("长按求救").font(.caption2.weight(.semibold)).foregroundStyle(Theme.danger)
+            Text("长按求救").font(.pf(.caption2, weight: .semibold)).foregroundStyle(Theme.danger)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("紧急求救")

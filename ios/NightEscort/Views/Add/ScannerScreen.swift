@@ -25,7 +25,7 @@ struct ScannerScreen: View {
         ZStack {
             if cameraDenied || !DataScannerViewController.isSupported {
                 VStack(spacing: 14) {
-                    Text("需要相机权限才能扫码").font(.headline)
+                    Text("需要相机权限才能扫码").font(.pf(.headline))
                     Button("去设置里打开") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
@@ -46,9 +46,9 @@ struct ScannerScreen: View {
                     Text(hint).padding(10).background(.black.opacity(0.6), in: Capsule())
                 }
                 HStack(spacing: 40) {
-                    Button { toggleTorch() } label: { VStack { Image(systemName: torch ? "flashlight.on.fill" : "flashlight.off.fill").font(.title2); Text("手电筒").font(.caption) } }
-                    PhotosPicker(selection: $photo, matching: .images) { VStack { Image(systemName: "photo").font(.title2); Text("相册").font(.caption) } }
-                    Button { showCode = true } label: { VStack { Image(systemName: "number").font(.title2); Text("邀请码").font(.caption) } }
+                    Button { toggleTorch() } label: { VStack { Image(systemName: torch ? "flashlight.on.fill" : "flashlight.off.fill").font(.pf(.title2)); Text("手电筒").font(.pf(.caption)) } }
+                    PhotosPicker(selection: $photo, matching: .images) { VStack { Image(systemName: "photo").font(.pf(.title2)); Text("相册").font(.pf(.caption)) } }
+                    Button { showCode = true } label: { VStack { Image(systemName: "number").font(.pf(.title2)); Text("邀请码").font(.pf(.caption)) } }
                 }
                 .padding(.vertical, 24)
             }
@@ -181,9 +181,8 @@ struct ConfirmInviteView: View {
         Form {
             Section {
                 VStack(alignment: .leading, spacing: 10) {
-                    AvatarView(name: p.inviter?.displayName ?? "", url: p.inviter?.avatarUrl, size: 64,
-                               tint: p.kind == .temporary ? Theme.temporary : Theme.accent)
-                    Text(p.headline ?? "").font(.title3.bold())
+                    AvatarView(name: p.inviter?.displayName ?? "", url: p.inviter?.avatarUrl, size: 64)
+                    Text(p.headline ?? "").font(.pf(.title3, weight: .semibold))
                     Text(p.explain ?? "").foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 6)
@@ -205,9 +204,11 @@ struct ConfirmInviteView: View {
                     _ = try await model.api.acceptInvite(ref, relation: relation, alsoGuardMe: alsoGuardMe)
                     await model.refreshAll()
                     dismiss()
-                } label: { Text("接受").frame(maxWidth: .infinity) }
-                .buttonStyle(PrimaryButtonStyle(color: p.kind == .temporary ? Theme.temporary : Theme.accent))
+                } label: { Text("接受").font(.pf(.headline)).frame(maxWidth: .infinity) }
+                .glassProminentButton(tint: p.kind == .temporary ? Theme.temporary : Theme.accent)
+                .controlSize(.large)
                 .listRowInsets(EdgeInsets())
+                .listRowBackground(Color.clear)
             }
         }
     }

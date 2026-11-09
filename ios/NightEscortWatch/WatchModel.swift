@@ -34,11 +34,34 @@ final class WatchModel: NSObject, ObservableObject {
         location.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         location.distanceFilter = 30
         rebuildAPI()
+        #if DEBUG
+        if let scene = DemoMode.scene {
+            loadDemo(scene)
+            return
+        }
+        #endif
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
         }
     }
+
+    #if DEBUG
+    /// 演示模式：不连手机和后端，直接摆出某个界面（见 Shared/DemoData.swift）
+    private func loadDemo(_ scene: String) {
+        api = nil
+        signedIn = scene != "signin"
+        switch scene {
+        case "running": escort = DemoData.escort("active")
+        case "paused": escort = DemoData.escort("paused")
+        case "alerting": escort = DemoData.escort("alerting")
+        case "sos": escort = DemoData.escort("alerting", sos: true)
+        case "home": escort = DemoData.escort("active"); askHome = "家"
+        case "message": message = "还没有默认担保人，请在 iPhone 上开始"
+        default: break
+        }
+    }
+    #endif
 
     private func rebuildAPI() {
         guard let url = baseURL, tokens.load() != nil else {
