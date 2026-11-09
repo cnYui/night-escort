@@ -5,6 +5,7 @@ import WatchKit
 // MARK: - 主题：watchOS 默认的黑底 + 系统蓝；按钮用系统液态玻璃；字体苹方
 
 enum WTheme {
+    /// 手表 App 没有全局强调色，主按钮要显式传系统蓝，否则 watchOS 画成灰色
     static let accent = Color.blue
     static let ink = Color.white
     static let sub = Color.secondary
@@ -166,7 +167,7 @@ struct IdleView: View {
                     .font(.pf(size: 16, weight: .semibold))
                     .frame(maxWidth: .infinity)
                 }
-                .glassProminentButton()
+                .glassProminentButton(tint: WTheme.accent)
                 .simultaneousGesture(LongPressGesture(minimumDuration: 1).onEnded { _ in
                     Task { await model.start() }
                 })
@@ -264,7 +265,7 @@ struct EscortRunningView: View {
                     }
                 }
                 Button { Task { await model.checkin() } } label: { Text("我没事").wButton() }
-                    .glassProminentButton()
+                    .glassProminentButton(tint: WTheme.accent)
                     .disabled(model.busy)
                     .padding(.top, 2)
                 Button { Task { await model.checkin(.arrived) } } label: { Text("到了，结束").wButton() }
@@ -399,7 +400,7 @@ struct HomeAskView: View {
                 Text("检测到你\n已经到\(place)").wTitle()
                 Text("安全到家了吗？").wSub()
                 Button { Task { await model.answerHome(arrived: true) } } label: { Text("到了，结束护航").wButton() }
-                    .glassProminentButton()
+                    .glassProminentButton(tint: WTheme.accent)
                     .padding(.top, 4)
                 Button { Task { await model.answerHome(arrived: false) } } label: { Text("还没，继续").wButton() }
                     .glassButton()
