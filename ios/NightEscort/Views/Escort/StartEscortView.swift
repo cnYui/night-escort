@@ -192,7 +192,7 @@ struct StartEscortView: View {
 }
 
 /**
- 地图选点：开始时定位一次（有定位权限就到当前位置，没有就停在一个默认城市），拖动地图让中间的图钉对准家。
+ 地图选点：先停在默认城市，取到一次当前位置后移过去（没权限就停着），拖动地图让中间的图钉对准家。
  范围圈画在屏幕中间、跟图钉一起，不放进地图内容里：之前用 MapCircle 跟着相机中心走，
  再加上没定位权限时 .automatic 会把镜头对准地图内容，于是“镜头动 → 圈动 → 镜头又动”，主线程卡死（11-09 在模拟器上抓到）。
  现在地图内容不随镜头变化，镜头停下来（.onEnd）才记一次中心点和比例尺。
@@ -203,7 +203,8 @@ struct PlacePicker: View {
     let initial: HomePlace?
     let onDone: (HomePlace?) -> Void
 
-    @State private var position: MapCameraPosition = .userLocation(fallback: .region(PlacePicker.fallbackRegion))
+    /// 先停在默认城市，拿到当前位置后再移过去（见 .task）
+    @State private var position: MapCameraPosition = .region(PlacePicker.fallbackRegion)
     @State private var center: CLLocationCoordinate2D?
     /// 地图上 1pt 代表多少米，用来把范围（米）换成屏幕上圈的大小
     @State private var metersPerPoint: Double?
@@ -266,6 +267,12 @@ struct PlacePicker: View {
                     }
                     .disabled(center == nil)
                 }
+            }
+            // 新加地点：取一次当前位置，把地图定到附近（定位是 WGS-84，要换成地图坐标）
+            .task {
+                guard initial == nil, let here = await CurrentLocation.once() else { return }
+                let c = CLLocationCoordinate2D.onMap(lat: here.latitude, lng: here.longitude)
+                withAnimation { position = .region(MKCoordinateRegion(center: c, latitudinalMeters: 800, longitudinalMeters: 800)) }
             }
             .onAppear {
                 if let p = initial {

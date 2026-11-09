@@ -141,3 +141,39 @@ final class LocationService: NSObject, ObservableObject, CLLocationManagerDelega
         }
     }
 }
+
+/**
+ 设定家庭地址时把地图定到附近：只取一次当前位置，拿到就停（最多等几秒）。
+ 地图自带的 .userLocation(fallback:) 在模拟器上一直停在 fallback（11-09 定位到北京也不动），所以自己取一次。
+ 没有权限时先问一次“使用 App 期间”；拒绝了就返回 nil，地图停在默认城市，用户自己拖。
+ */
+enum CurrentLocation {
+    @MainActor
+    static func once(timeout: Duration = .seconds(8)) async -> CLLocationCoordinate2D? {
+        let manager = CLLocationManager()
+        switch manager.authorizationStatus {
+        case .denied, .restricted: return nil
+        case .notDetermined: manager.requestWhenInUseAuthorization()
+        default: break
+        }
+        let result = await withTaskGroup(of: CLLocationCoordinate2D?.self) { group -> CLLocationCoordinate2D? in
+            group.addTask {
+                do {
+                    for try await update in CLLocationUpdate.liveUpdates() {
+                        if let loc = update.location { return loc.coordinate }
+                    }
+                } catch {}
+                return nil
+            }
+            group.addTask {
+                try? await Task.sleep(for: timeout)
+                return nil
+            }
+            let first = await group.next() ?? nil
+            group.cancelAll()
+            return first
+        }
+        withExtendedLifetime(manager) {}
+        return result
+    }
+}
