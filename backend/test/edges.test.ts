@@ -128,11 +128,14 @@ describe('实时通道', () => {
 });
 
 describe('落地页、保留期、健康检查', () => {
-  it('邀请落地页：显示邀请码，不显示手机号；过期后只显示一句话', async () => {
+  it('邀请落地页：能打开 App、能复制链接，没有 6 位码，不显示手机号；过期后只显示一句话', async () => {
     const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
     const page = await h.app.inject({ url: `/i/${inv.token}` });
     expect(page.body).toContain('小林邀请你长期守护她');
-    expect(page.body).toContain(inv.code);
+    expect(page.body).toContain(`anquanhuijia://i/${inv.token}`);
+    expect(page.body).toContain(inv.url);
+    expect(page.body).toContain('复制邀请链接');
+    expect(page.body).not.toContain('邀请码');
     expect(page.body).toContain('安装 TestFlight');
     expect(page.body).not.toContain(lin.phone);
     h.clock.advance(25 * 60 * MIN);

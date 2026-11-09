@@ -6,7 +6,7 @@ import Foundation
  演示模式（只在调试包里有）：不连后端，用一组示例数据把各个界面摆出来，方便在模拟器里截图。
  启动参数 `-demoScene <名字>`，例如：
    xcrun simctl launch booted app.nightescort.ios -demoScene home
- iPhone：login / home / start / active / sos / guarding / incident / me
+ iPhone：login / home / start / active / sos / guarding / incident / me / invite / confirm / confirm-login
  手表：signin / idle / running / paused / alerting / sos / home / message
  */
 enum DemoMode {
@@ -101,6 +101,21 @@ enum DemoData {
          {"escort_id":"e-mia","owner":{"id":"p-mia","display_name":"Mia"},"status":"active","my_tier":"temporary","next_due_at":"\(iso(18 * 60))","started_at":"\(iso(-40 * 60))","can_view_location":false},
          {"escort_id":"e-jj","owner":{"id":"p-jj","display_name":"姐姐"},"status":"paused","my_tier":"standing","paused_until":"\(iso(8 * 3600))","started_at":"\(iso(-3 * 3600))","can_view_location":false},
          {"escort_id":"e-mm","owner":{"id":"p-mm","display_name":"妈妈"},"status":"ended","my_tier":"standing","started_at":"\(iso(-5 * 3600))","ended_at":"\(iso(-4 * 3600))","end_reason":"home","can_view_location":false}]
+        """)
+    }
+
+    /// 出示邀请（invite 场景）
+    static var invite: Invite {
+        decode(Invite.self, """
+        {"id":"inv-1","kind":"standing","token":"Xk2pQ9vLmT4wZr8a","url":"https://ye.example.com/i/Xk2pQ9vLmT4wZr8a","expires_at":"\(iso(23 * 3600 + 41 * 60))"}
+        """)
+    }
+
+    /// 朋友那边弹出的“成为担保人”（confirm 场景）
+    static var invitePreview: InvitePreview {
+        decode(InvitePreview.self, """
+        {"state":"valid","kind":"standing","inviter":{"display_name":"小林"},"expires_at":"\(iso(23 * 3600))",
+         "headline":"小林邀请你长期守护她","explain":"她护航时你会收到通知并看到她的位置，护航结束就看不到了。","offer_reverse":true}
         """)
     }
 

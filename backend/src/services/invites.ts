@@ -1,5 +1,6 @@
 /**
- * 邀请：二维码、6 位邀请码、分享链接是同一个东西（设计文档 8 节、3.1–3.3）。
+ * 邀请：二维码和分享链接是同一个东西，二维码就是这条链接（设计文档 8 节、3.1–3.3）。
+ * 2026-11-09 起不再有 6 位邀请码：没装 App 的人装完后，App 从粘贴板认出这条链接接上。
  * 邀请里带着授权模板：长期邀请 → 常驻授权；临时邀请 → 带失效点的临时授权。
  * 一个码只能用一次；长期 24 小时有效，临时 30 分钟有效（当面扫的）。
  */
@@ -7,22 +8,19 @@ import { one, tx } from '../db.js';
 import type { Deps } from '../deps.js';
 import { DEFAULT_TEMPORARY_TEMPLATE, describeVisibility, type TemporaryTemplate } from '../domain/grants.js';
 import { HOUR, MINUTE } from '../domain/time.js';
-import { badRequest, conflict, forbidden, notFound, tooMany } from '../errors.js';
-import { randomToken, sixDigits } from '../infra/crypto.js';
+import { badRequest, conflict, forbidden, notFound } from '../errors.js';
+import { randomToken } from '../infra/crypto.js';
 import { areConnected, insertGrant, liveGrant, stateOf, userBrief } from './grants.js';
 import { notify } from './notifier.js';
 
 export const STANDING_INVITE_TTL = 24 * HOUR;
 export const TEMPORARY_INVITE_TTL = 30 * MINUTE;
-const CODE_FAIL_MAX = 5;
-const CODE_LOCK = 10 * MINUTE;
 
 export type InviteKind = 'standing' | 'temporary';
 
 interface InviteRow {
   id: string;
   token: string;
-  code: string;
   inviter_id: string;
   kind: InviteKind;
   grant_template: TemporaryTemplate | Record<string, never>;
@@ -43,7 +41,6 @@ function present(d: Deps, inv: InviteRow) {
     id: inv.id,
     kind: inv.kind,
     token: inv.token,
-    code: inv.code,
     url: inviteUrl(d, inv.token),
     expires_at: inv.expires_at,
     template: inv.kind === 'temporary' ? inv.grant_template : null,
@@ -53,23 +50,16 @@ function present(d: Deps, inv: InviteRow) {
 export async function createInvite(d: Deps, inviterId: string, kind: InviteKind, template?: Partial<TemporaryTemplate>) {
   const now = d.clock.now();
   const tpl = kind === 'temporary' ? { ...DEFAULT_TEMPORARY_TEMPLATE, ...template } : {};
-  for (let attempt = 0; attempt < 5; attempt++) {
-    try {
-      const inv = await one<InviteRow>(
-        d.db,
-        `INSERT INTO invites (token, code, inviter_id, kind, grant_template, expires_at, created_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-        [randomToken(16), sixDigits(), inviterId, kind, JSON.stringify(tpl), new Date(now.getTime() + (kind === 'standing' ? STANDING_INVITE_TTL : TEMPORARY_INVITE_TTL)), now],
-      );
-      return present(d, inv!);
-    } catch (e: any) {
-      if (e.code !== '23505') throw e; // 6 位码撞了，重试
-    }
-  }
-  throw new Error('invite code collision');
+  const inv = await one<InviteRow>(
+    d.db,
+    `INSERT INTO invites (token, inviter_id, kind, grant_template, expires_at, created_at)
+     VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+    [randomToken(16), inviterId, kind, JSON.stringify(tpl), new Date(now.getTime() + (kind === 'standing' ? STANDING_INVITE_TTL : TEMPORARY_INVITE_TTL)), now],
+  );
+  return present(d, inv!);
 }
 
-/** 刷新：旧码作废，同样的模板生成新码。 */
+/** 刷新：旧链接作废，同样的模板生成新链接。 */
 export async function refreshInvite(d: Deps, inviterId: string, inviteId: string) {
   const inv = await one<InviteRow>(d.db, `SELECT * FROM invites WHERE id = $1 AND inviter_id = $2`, [inviteId, inviterId]);
   if (!inv) throw notFound('invite_not_found', '找不到这个邀请');
@@ -107,27 +97,9 @@ function inviteState(d: Deps, inv: InviteRow): 'valid' | 'expired' | 'consumed' 
   return 'valid';
 }
 
-async function findInvite(d: Deps, ref: { token?: string; code?: string }, viewerId?: string): Promise<InviteRow | null> {
-  if (ref.token) return one<InviteRow>(d.db, `SELECT * FROM invites WHERE token = $1`, [ref.token]);
-  if (ref.code) {
-    if (!/^\d{6}$/.test(ref.code)) throw badRequest('code_format', '邀请码是 6 位数字');
-    // 同一账号 10 分钟内输错 5 次锁 10 分钟，防止被枚举
-    const lockKey = `invitecode:fail:${viewerId ?? 'anon'}`;
-    if (Number((await d.kv.get(lockKey)) ?? 0) >= CODE_FAIL_MAX) {
-      throw tooMany('code_locked', '输错太多次了，请 10 分钟后再试');
-    }
-    const inv = await one<InviteRow>(
-      d.db,
-      `SELECT * FROM invites WHERE code = $1 AND consumed_at IS NULL AND revoked_at IS NULL ORDER BY created_at DESC LIMIT 1`,
-      [ref.code],
-    );
-    if (!inv || inv.expires_at.getTime() <= d.clock.now().getTime()) {
-      await d.kv.incr(lockKey, CODE_LOCK);
-      return inv;
-    }
-    return inv;
-  }
-  throw badRequest('ref_required', '缺少邀请');
+async function findInvite(d: Deps, token: string): Promise<InviteRow | null> {
+  if (!token) throw badRequest('ref_required', '缺少邀请');
+  return one<InviteRow>(d.db, `SELECT * FROM invites WHERE token = $1`, [token]);
 }
 
 export type PreviewState = 'valid' | 'expired' | 'consumed' | 'revoked' | 'own' | 'already_guardian' | 'not_found';
@@ -141,7 +113,6 @@ export interface InvitePreview {
   kind: InviteKind;
   inviter: { display_name: string; avatar_url: string | null };
   expires_at: Date;
-  code?: string;
   headline: string;
   explain: string;
   offer_reverse: boolean;
@@ -150,10 +121,10 @@ export interface InvitePreview {
 
 export async function previewInvite(
   d: Deps,
-  ref: { token?: string; code?: string },
+  token: string,
   viewerId?: string,
 ): Promise<InvitePreview | { state: 'not_found' }> {
-  const inv = await findInvite(d, ref, viewerId);
+  const inv = await findInvite(d, token);
   if (!inv) return { state: 'not_found' };
   const inviter = await userBrief(d.db, inv.inviter_id);
   let state: InvitePreview['state'] = inviteState(d, inv);
@@ -173,7 +144,6 @@ export async function previewInvite(
     kind: inv.kind,
     inviter: { display_name: inviter.display_name, avatar_url: inviter.avatar_url },
     expires_at: inv.expires_at,
-    code: state === 'valid' ? inv.code : undefined,
     // 确认页文案
     headline: inv.kind === 'standing' ? `${inviter.display_name}邀请你长期守护她` : `${inviter.display_name}请你今晚临时守护她`,
     explain:
@@ -190,17 +160,17 @@ export async function previewInvite(
 export async function acceptInvite(
   d: Deps,
   acceptorId: string,
-  input: { token?: string; code?: string; relation?: string; also_guard_me?: boolean },
+  input: { token: string; relation?: string; also_guard_me?: boolean },
 ) {
-  const pre = await findInvite(d, input, acceptorId);
-  if (!pre) throw notFound('invite_not_found', '邀请码不对');
+  const pre = await findInvite(d, input.token);
+  if (!pre) throw notFound('invite_not_found', '这个邀请链接不对');
   const now = d.clock.now();
   const result = await tx(d.db, async (c) => {
     const inv = await one<InviteRow>(c, `SELECT * FROM invites WHERE id = $1 FOR UPDATE`, [pre.id]);
     const st = inviteState(d, inv!);
     if (st === 'expired') throw conflict('invite_expired', '这个邀请已过期，请让对方重新发一个');
     if (st !== 'valid') throw conflict('invite_used', '这个邀请已经用过了');
-    if (inv!.inviter_id === acceptorId) throw badRequest('own_invite', '这是你自己的邀请码');
+    if (inv!.inviter_id === acceptorId) throw badRequest('own_invite', '这是你自己发出的邀请');
 
     const a = inv!.inviter_id;
     const b = acceptorId;

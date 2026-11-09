@@ -19,7 +19,7 @@ final class AppModel: ObservableObject {
     @Published var cards: [GuardCard] = []
     /// 正在响铃、需要全屏挂着的事件（担保人一侧）
     @Published var alertIncident: IncidentView?
-    /// 扫码 / 通用链接 / 粘贴进来的邀请，弹确认页
+    /// 扫码 / 点链接 / 粘贴板里认出来的邀请，弹“成为担保人”。没登录时先留着，登录后再弹
     @Published var pendingInvite: InviteRef?
     /// 到家提醒：“检测到你已经到家，安全到家了吗？”
     @Published var homePrompt: String?
@@ -48,6 +48,7 @@ final class AppModel: ObservableObject {
     /// 演示模式：不连后端，直接摆出某个界面（见 Shared/DemoData.swift）
     private func loadDemo(_ scene: String) {
         guard scene != "login" else { signedIn = false; return }
+        if scene == "confirm-login" { signedIn = false; pendingInvite = .token("Xk2pQ9vLmT4wZr8a"); return }
         signedIn = true
         user = DemoData.user
         connections = DemoData.connections
@@ -56,6 +57,7 @@ final class AppModel: ObservableObject {
         case "active": escort = DemoData.escort("active")
         case "sos": escort = DemoData.escort("alerting", sos: true)
         case "incident": alertIncident = DemoData.incident
+        case "confirm": pendingInvite = .token("Xk2pQ9vLmT4wZr8a")
         default: break
         }
     }
@@ -67,6 +69,7 @@ final class AppModel: ObservableObject {
         #if DEBUG
         if DemoMode.scene != nil { return }
         #endif
+        checkPasteboardForInvite()
         guard signedIn else { return }
         await reportDevice(opened: true)
         await refreshAll()
@@ -233,8 +236,65 @@ final class AppModel: ObservableObject {
 
     func handleIncomingURL(_ url: URL) {
         if let ref = InviteLink.parse(url.absoluteString, allowedHosts: AppConfig.inviteHosts) {
+            markInviteHandled(ref)
             pendingInvite = ref
         }
+    }
+
+    /// “粘贴邀请链接”按钮（系统 PasteButton，不弹粘贴权限提示）
+    @discardableResult
+    func handlePastedText(_ strings: [String]) -> Bool {
+        guard let ref = strings.lazy.compactMap({ InviteLink.find(in: $0, allowedHosts: AppConfig.inviteHosts) }).first else {
+            toast = "粘贴板里没有「安全回家」的邀请链接"
+            return false
+        }
+        markInviteHandled(ref)
+        pendingInvite = ref
+        return true
+    }
+
+    /**
+     朋友在微信里复制了邀请链接（或在落地页点了“复制邀请链接”），回到 App 时自动弹“成为担保人”。
+     - 先用 detectPatterns 看一眼是不是像链接，这一步不会弹系统的“允许粘贴”提示；
+     - 像链接才真的读，这时 iOS 会问一次“允许粘贴”（用户可在设置里改成“允许”）；
+     - 同一次复制只认一次（changeCount），同一个邀请弹过就不再弹。
+     */
+    func checkPasteboardForInvite() {
+        let pb = UIPasteboard.general
+        let defaults = UserDefaults.standard
+        guard pb.hasStrings, pb.changeCount != defaults.integer(forKey: Self.lastPasteboardChangeKey) else { return }
+        defaults.set(pb.changeCount, forKey: Self.lastPasteboardChangeKey)
+        pb.detectPatterns(for: [.probableWebURL]) { [weak self] result in
+            guard case .success(let found) = result, found.contains(.probableWebURL) else { return }
+            Task { @MainActor in
+                guard let self, self.pendingInvite == nil,
+                      let text = UIPasteboard.general.string,
+                      let ref = InviteLink.find(in: text, allowedHosts: AppConfig.inviteHosts),
+                      !self.handledInviteTokens.contains(ref.token) else { return }
+                self.markInviteHandled(ref)
+                self.pendingInvite = ref
+            }
+        }
+    }
+
+    /// 自己复制自己的邀请（发微信、复制链接）：记下来，回到 App 时别把自己的邀请弹出来
+    func copyOwnInvite(_ text: String, token: String) {
+        UIPasteboard.general.string = text
+        UserDefaults.standard.set(UIPasteboard.general.changeCount, forKey: Self.lastPasteboardChangeKey)
+        markInviteHandled(.token(token))
+    }
+
+    private static let lastPasteboardChangeKey = "invite.lastPasteboardChange"
+    private static let handledInvitesKey = "invite.handledTokens"
+
+    private var handledInviteTokens: [String] {
+        UserDefaults.standard.stringArray(forKey: Self.handledInvitesKey) ?? []
+    }
+
+    private func markInviteHandled(_ ref: InviteRef) {
+        var list = handledInviteTokens.filter { $0 != ref.token }
+        list.append(ref.token)
+        UserDefaults.standard.set(Array(list.suffix(20)), forKey: Self.handledInvitesKey)
     }
 
     // MARK: 到家（6.5）

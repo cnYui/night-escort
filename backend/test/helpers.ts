@@ -150,7 +150,7 @@ export async function connectStanding(h: Harness, inviter: TestUser, acceptor: T
 
 export async function connectTemporary(h: Harness, inviter: TestUser, acceptor: TestUser, template: Record<string, string> = {}) {
   const inv = await call(h, inviter, 'POST', '/v1/invites', { kind: 'temporary', template });
-  await call(h, acceptor, 'POST', '/v1/invites/accept', { code: inv.code });
+  await call(h, acceptor, 'POST', '/v1/invites/accept', { token: inv.token });
   return inv;
 }
 

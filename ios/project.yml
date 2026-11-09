@@ -53,6 +53,10 @@ targets:
         NSCameraUsageDescription: 扫描好友的守护邀请二维码。
         NSPhotoLibraryUsageDescription: 从相册里识别邀请二维码。
         LSApplicationQueriesSchemes: [weixin, weixinULAPI]
+        # 邀请落地页“打开「安全回家」”按钮：anquanhuijia://i/<token>（和 EscortKit InviteLink.appScheme、后端 APP_SCHEME 一致）
+        CFBundleURLTypes:
+          - CFBundleURLName: app.nightescort.ios.invite
+            CFBundleURLSchemes: [anquanhuijia]
         ITSAppUsesNonExemptEncryption: false
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true

@@ -7,8 +7,8 @@ import Vision
 import VisionKit
 
 /**
- 扫码页（8.3）：全屏取景，系统 VisionKit 识别；底部手电筒、从相册选、输入邀请码。
- 识别到本 App 的码轻震一下跳确认页；其他二维码只提示“这不是「安全回家」的邀请码”，不跳转、不打开链接。
+ 扫码页（8.3）：全屏取景，系统 VisionKit 识别；底部手电筒、从相册选、粘贴邀请链接。
+ 识别到本 App 的码轻震一下跳确认页；其他二维码只提示“这不是「安全回家」的邀请”，不跳转、不打开链接。
  */
 struct ScannerScreen: View {
     @EnvironmentObject var model: AppModel
@@ -18,7 +18,6 @@ struct ScannerScreen: View {
     @State private var hint: String?
     @State private var torch = false
     @State private var photo: PhotosPickerItem?
-    @State private var showCode = false
     @State private var cameraDenied = AVCaptureDevice.authorizationStatus(for: .video) == .denied
 
     var body: some View {
@@ -29,7 +28,9 @@ struct ScannerScreen: View {
                     Button("去设置里打开") {
                         if let url = URL(string: UIApplication.openSettingsURLString) { UIApplication.shared.open(url) }
                     }
-                    Button("改用邀请码") { showCode = true }
+                    PasteButton(payloadType: String.self) { strings in
+                        Task { @MainActor in paste(strings) }
+                    }
                 }
                 .foregroundStyle(.white)
             } else {
@@ -48,7 +49,11 @@ struct ScannerScreen: View {
                 HStack(spacing: 40) {
                     Button { toggleTorch() } label: { VStack { Image(systemName: torch ? "flashlight.on.fill" : "flashlight.off.fill").font(.pf(.title2)); Text("手电筒").font(.pf(.caption)) } }
                     PhotosPicker(selection: $photo, matching: .images) { VStack { Image(systemName: "photo").font(.pf(.title2)); Text("相册").font(.pf(.caption)) } }
-                    Button { showCode = true } label: { VStack { Image(systemName: "number").font(.pf(.title2)); Text("邀请码").font(.pf(.caption)) } }
+                    PasteButton(payloadType: String.self) { strings in
+                        Task { @MainActor in paste(strings) }
+                    }
+                    .labelStyle(.iconOnly)
+                    .buttonBorderShape(.circle)
                 }
                 .padding(.vertical, 24)
             }
@@ -63,12 +68,13 @@ struct ScannerScreen: View {
         .onChange(of: photo) { _, item in
             Task { await scanPhoto(item) }
         }
-        .sheet(isPresented: $showCode) {
-            EnterCodeView { code in
-                showCode = false
-                onFound(.code(code))
-            }
-            .presentationDetents([.medium])
+    }
+
+    private func paste(_ strings: [String]) {
+        if let ref = strings.lazy.compactMap({ InviteLink.find(in: $0, allowedHosts: AppConfig.inviteHosts) }).first {
+            onFound(ref)
+        } else {
+            hint = "粘贴板里没有「安全回家」的邀请链接"
         }
     }
 
@@ -77,7 +83,7 @@ struct ScannerScreen: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
             onFound(ref)
         } else {
-            hint = "这不是「安全回家」的邀请码"
+            hint = "这不是「安全回家」的邀请"
         }
     }
 
@@ -139,7 +145,8 @@ private struct DataScannerRepresentable: UIViewControllerRepresentable {
 }
 
 /**
- 确认页（3.1 第 4 步）：“小林邀请你长期守护她。她护航时你会收到通知并看到她的位置，护航结束就看不到了。”
+ “成为担保人”弹窗（3.1 第 4 步）：点邀请链接、扫码、或者复制了链接回到 App 时弹出。
+ “小林邀请你长期守护她。她护航时你会收到通知并看到她的位置，护航结束就看不到了。”
  选她是你的什么人；长期邀请多一个默认关闭的“也让她守护我”。临时邀请不显示这个开关。
  */
 struct ConfirmInviteView: View {
@@ -154,62 +161,90 @@ struct ConfirmInviteView: View {
     static let relations = ["家人", "女儿", "妈妈", "爸爸", "伴侣", "室友", "朋友", "同事"]
 
     var body: some View {
-        NavigationStack {
-            Group {
-                if let p = preview {
-                    if let problem = p.problem {
-                        ContentUnavailableView(problem, systemImage: "exclamationmark.circle")
-                    } else {
-                        form(p)
+        Group {
+            if let p = preview {
+                if let problem = p.problem {
+                    ContentUnavailableView {
+                        Label(problem, systemImage: "exclamationmark.circle")
+                    } actions: {
+                        Button { dismiss() } label: { Text("好").font(.pf(.headline)).frame(maxWidth: 200) }
+                            .glassButton()
+                            .controlSize(.large)
                     }
-                } else if let error {
-                    ContentUnavailableView(error, systemImage: "wifi.exclamationmark")
                 } else {
-                    ProgressView()
+                    content(p)
                 }
+            } else if let error {
+                ContentUnavailableView(error, systemImage: "wifi.exclamationmark")
+            } else {
+                ProgressView().frame(maxWidth: .infinity, maxHeight: .infinity)
             }
-            .navigationTitle("守护邀请")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("取消") { dismiss() } } }
         }
         .task {
+            #if DEBUG
+            if DemoMode.scene != nil { preview = DemoData.invitePreview; return }
+            #endif
             do { preview = try await model.api.previewInvite(ref) } catch { self.error = error.localizedDescription }
         }
     }
 
-    private func form(_ p: InvitePreview) -> some View {
-        Form {
-            Section {
-                VStack(alignment: .leading, spacing: 10) {
-                    AvatarView(name: p.inviter?.displayName ?? "", url: p.inviter?.avatarUrl, size: 64)
-                    Text(p.headline ?? "").font(.pf(.title3, weight: .semibold))
-                    Text(p.explain ?? "").foregroundStyle(.secondary)
+    private func content(_ p: InvitePreview) -> some View {
+        let tint = p.kind == .temporary ? Theme.temporary : Theme.accent
+        let name = p.inviter?.displayName ?? "她"
+        return ScrollView {
+            VStack(spacing: 14) {
+                Text("成为担保人").font(.pf(.subheadline, weight: .semibold)).foregroundStyle(.secondary)
+                    .padding(.top, 20)
+                AvatarView(name: name, url: p.inviter?.avatarUrl, size: 72)
+                Text(p.headline ?? "").font(.pf(.title3, weight: .semibold)).multilineTextAlignment(.center)
+                Text(p.explain ?? "").font(.pf(.subheadline)).foregroundStyle(.secondary).multilineTextAlignment(.center)
+
+                VStack(spacing: 0) {
+                    HStack {
+                        Text("她是你的").font(.pf(.body))
+                        Spacer()
+                        Picker("她是你的", selection: $relation) {
+                            ForEach(Self.relations, id: \.self) { Text($0).tag($0) }
+                        }
+                        .pickerStyle(.menu)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 6)
+                    if p.offerReverse == true {
+                        Divider().padding(.leading, 16)
+                        Toggle(isOn: $alsoGuardMe) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("也让\(name)守护我").font(.pf(.body))
+                                Text("你护航时她也会被默认选中").font(.pf(.caption)).foregroundStyle(.secondary)
+                            }
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                    }
                 }
-                .padding(.vertical, 6)
-            }
-            Section("她是你的什么人") {
-                Picker("关系", selection: $relation) {
-                    ForEach(Self.relations, id: \.self) { Text($0).tag($0) }
-                }
-            }
-            if p.offerReverse == true {
-                Section {
-                    Toggle("也让\(p.inviter?.displayName ?? "她")守护我", isOn: $alsoGuardMe)
-                } footer: {
-                    Text("打开后，你护航时她也会被默认选中。")
-                }
-            }
-            Section {
+                .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+                .padding(.top, 6)
+
                 AsyncButton {
+                    #if DEBUG
+                    if DemoMode.scene != nil { dismiss(); return }
+                    #endif
                     _ = try await model.api.acceptInvite(ref, relation: relation, alsoGuardMe: alsoGuardMe)
                     await model.refreshAll()
+                    model.toast = "你已成为\(name)的担保人"
                     dismiss()
-                } label: { Text("接受").font(.pf(.headline)).frame(maxWidth: .infinity) }
-                .glassProminentButton(tint: p.kind == .temporary ? Theme.temporary : Theme.accent)
+                } label: { Text("成为担保人").font(.pf(.headline)).frame(maxWidth: .infinity) }
+                .glassProminentButton(tint: tint)
                 .controlSize(.large)
-                .listRowInsets(EdgeInsets())
-                .listRowBackground(Color.clear)
+                .padding(.top, 8)
+
+                Button { dismiss() } label: { Text("暂不").font(.pf(.body)).frame(maxWidth: .infinity) }
+                    .glassButton()
+                    .controlSize(.large)
             }
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
         }
+        .background(Color(.systemGroupedBackground))
     }
 }
