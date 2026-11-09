@@ -1,6 +1,6 @@
-# 到家没 · 设计说明
+# 安全回家 · 设计说明
 
-App 名：**到家没**（工程、Bundle ID 仍叫 NightEscort）。口号：回家路上，有人一直在。
+App 名：**安全回家**（工程、Bundle ID 仍叫 NightEscort）。口号：回家路上，有人一直在。
 
 ![手表 · 当前配色](screens/watch-current-theme.png)
 

@@ -2,7 +2,7 @@ import EscortKit
 import SwiftUI
 
 enum Theme {
-    /// 到家没：主色用品牌深薰衣草紫（和图标、手表同一套）；临时用琥珀色；联系不上用红色
+    /// 安全回家：主色用品牌深薰衣草紫（和图标、手表同一套）；临时用琥珀色；联系不上用红色
     static let accent = Color(red: 0x6B / 255, green: 0x47 / 255, blue: 0xBF / 255)
     static let temporary = Color(red: 0.96, green: 0.62, blue: 0.11)
     static let danger = Color(red: 0.92, green: 0.23, blue: 0.23)

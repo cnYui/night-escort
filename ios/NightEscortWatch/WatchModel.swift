@@ -57,7 +57,7 @@ final class WatchModel: NSObject, ObservableObject {
 
     func requestTokensFromPhone() {
         guard WCSession.default.activationState == .activated, WCSession.default.isReachable else {
-            message = "请在 iPhone 上打开「到家没」"
+            message = "请在 iPhone 上打开「安全回家」"
             return
         }
         WCSession.default.sendMessage(["need": "tokens"], replyHandler: nil)

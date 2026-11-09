@@ -159,7 +159,7 @@ struct SignInView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 6) {
-                WLabel(text: "到家没")
+                WLabel(text: "安全回家")
                 WIcon(name: "IconPhone", size: 46)
                 Text("在 iPhone 上\n登录一下")
                     .font(.system(size: 20, weight: .heavy, design: .rounded))
@@ -185,7 +185,7 @@ struct IdleView: View {
     var body: some View {
         ScrollView {
         VStack(alignment: .leading, spacing: 4) {
-            WLabel(text: "到家没")
+            WLabel(text: "安全回家")
             WIcon(name: "IconMoon", size: 48)
             Text("今晚\n平安到家")
                 .font(.system(size: 22, weight: .heavy, design: .rounded))
