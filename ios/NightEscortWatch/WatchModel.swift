@@ -160,7 +160,6 @@ final class WatchModel: NSObject, ObservableObject {
         guard let url = URL(string: "tel:110") else { return }
         WKApplication.shared().openSystemURL(url)
     }
-    }
 
     func checkin(_ action: CheckinAction = .ok) async {
         guard let api, let e = escort else { return }
