@@ -56,7 +56,8 @@ export function loadConfig(): Config {
       aliyunTemplateCode: process.env.ALIYUN_SMS_TEMPLATE_CODE,
     },
     apns: {
-      enabled: process.env.APNS_KEY_ID !== undefined,
+      // 部署用的 .env 里留空的 APNS_KEY_ID= 也算没配
+      enabled: !!process.env.APNS_KEY_ID,
       teamId: process.env.APNS_TEAM_ID,
       keyId: process.env.APNS_KEY_ID,
       privateKeyPem: process.env.APNS_PRIVATE_KEY?.replace(/\\n/g, '\n'),

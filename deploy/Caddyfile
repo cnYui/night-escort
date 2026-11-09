@@ -1,0 +1,5 @@
+# Caddy 会自动为 DOMAIN 申请和续期 Let's Encrypt 证书，WebSocket（/v1/ws）也直接转发。
+{$DOMAIN} {
+	encode gzip
+	reverse_proxy backend:8080
+}
