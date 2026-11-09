@@ -68,13 +68,14 @@ struct GraphView: View {
                 // 回家路上下面的面板会把这块压矮：不再围成一圈，只留一排小气泡，蓝圈是这次守着你的人
                 HStack(alignment: .top, spacing: 6) {
                     ForEach(shown) { c in
-                        BubbleView(connection: c, chosen: inEscort.contains(c.id), labelsAbove: false, scale: 0.7, showDetail: false)
+                        BubbleView(connection: c, chosen: inEscort.contains(c.id), labelsAbove: false, scale: 0.8, showDetail: false)
                             .padding(.bottom, 22)
                             .frame(maxWidth: .infinity)
                             .onTapGesture { onTap(c) }
                     }
                 }
-                .frame(width: geo.size.width, height: geo.size.height)
+                .padding(.top, 20)
+                .frame(width: geo.size.width, height: geo.size.height, alignment: .top)
             } else {
             ZStack {
                 if shown.isEmpty {
@@ -231,6 +232,13 @@ struct PeopleListView: View {
             }
         }
         .listStyle(.insetGrouped)
+        // 底部按钮上面渐隐一下，不让最后一行看起来像被硬切断
+        .overlay(alignment: .bottom) {
+            LinearGradient(colors: [Color(.systemGroupedBackground).opacity(0), Color(.systemGroupedBackground)],
+                           startPoint: .top, endPoint: .bottom)
+                .frame(height: 36)
+                .allowsHitTesting(false)
+        }
     }
 
     private func row(_ c: Connection) -> some View {
