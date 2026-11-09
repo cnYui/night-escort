@@ -64,6 +64,18 @@ struct GraphView: View {
             let center = CGPoint(x: geo.size.width / 2, y: geo.size.height / 2)
             let split = HomePeople.split(connections)
             let shown = split.shown
+            if geo.size.height < 360 && !shown.isEmpty {
+                // 回家路上下面的面板会把这块压矮：不再围成一圈，只留一排小气泡，蓝圈是这次守着你的人
+                HStack(alignment: .top, spacing: 6) {
+                    ForEach(shown) { c in
+                        BubbleView(connection: c, chosen: inEscort.contains(c.id), labelsAbove: false, scale: 0.7, showDetail: false)
+                            .padding(.bottom, 22)
+                            .frame(maxWidth: .infinity)
+                            .onTapGesture { onTap(c) }
+                    }
+                }
+                .frame(width: geo.size.width, height: geo.size.height)
+            } else {
             ZStack {
                 if shown.isEmpty {
                     VStack(spacing: 6) {
@@ -114,8 +126,10 @@ struct GraphView: View {
                         .position(x: center.x, y: geo.size.height - 10)
                 }
             }
+            }
         }
         .padding(.horizontal)
+        .padding(.top, 14)
     }
 
     private func position(_ i: Int, count: Int, c: Connection, size: CGFloat, center: CGPoint) -> CGPoint {
@@ -131,6 +145,8 @@ private struct BubbleView: View {
     let connection: Connection
     let chosen: Bool
     let labelsAbove: Bool
+    var scale: CGFloat = 1
+    var showDetail = true
 
     var body: some View {
         let c = connection
@@ -138,7 +154,7 @@ private struct BubbleView: View {
         // 气泡大小表示亲疏：7 天内一起回过家最大，越久越小；还不能守护你的人再小一号
         let d = HomePeople.days(c)
         let base: CGFloat = d <= 7 ? 74 : d <= 20 ? 60 : 50
-        let size: CGFloat = isGuardian ? base : base * 0.8
+        let size: CGFloat = (isGuardian ? base : base * 0.8) * scale
         let faded = HomePeople.days(c) > 20
         ZStack(alignment: .topTrailing) {
             AvatarView(name: c.shownName, url: c.peer.avatarUrl, size: size)
@@ -157,7 +173,9 @@ private struct BubbleView: View {
         .overlay(alignment: labelsAbove ? .top : .bottom) {
             VStack(spacing: 1) {
                 Text(c.shownName).font(.pf(.footnote, weight: .medium))
-                if c.guardsMe?.tier == .temporary, c.guardsMe?.bindToEscort == true {
+                if !showDetail {
+                    EmptyView()
+                } else if c.guardsMe?.tier == .temporary, c.guardsMe?.bindToEscort == true {
                     Text("到家后取消").font(.pf(.caption2)).foregroundStyle(Theme.temporary)
                 } else if !isGuardian {
                     Text("还不能守护你").font(.pf(.caption2)).foregroundStyle(.secondary)

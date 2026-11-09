@@ -42,7 +42,7 @@ struct HomeView: View {
                 case .bubble:
                     VStack(alignment: .leading, spacing: 2) {
                         Text("谁在守护我").font(.pf(.title3, weight: .semibold))
-                        Text("回家时从这些人里选几个，他们会看到你到没到家。")
+                        Text(model.escort?.isOpen == true ? "蓝圈的人正在守着你回家。" : "回家时从这些人里选几个，他们会看到你到没到家。")
                             .font(.pf(.footnote)).foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -180,7 +180,7 @@ struct ActiveEscortPanel: View {
                             Text(Display.countdown(to: due, now: ctx.date))
                                 .font(.pf(size: 52, weight: .semibold))
                                 .monospacedDigit()
-                            Text("后签到 · \(Display.hhmm(due))").font(.pf(.subheadline)).foregroundStyle(.secondary)
+                            Text("后报平安 · \(Display.hhmm(due))").font(.pf(.subheadline)).foregroundStyle(.secondary)
                         }
                         ProgressView(value: progress(due: due, now: ctx.date))
                     } else {
