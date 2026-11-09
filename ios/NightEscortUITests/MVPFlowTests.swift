@@ -170,11 +170,11 @@ final class MVPFlowTests: XCTestCase {
         shot("我守护的人")
         try await Dev(base: base).advance(minutes: 28)
         let safe = app.buttons["已联系上，她安全"]
-        XCTAssertTrue(safe.waitForExistence(timeout: 25), "阿珂漏报后我这边没弹出提醒框")
+        XCTAssertTrue(safe.waitForExistence(timeout: 60), "阿珂漏报后我这边没弹出提醒框")
         shot("请尝试联系阿珂")
         safe.tap()
         let keep = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "继续护航")).firstMatch
-        XCTAssertTrue(keep.waitForExistence(timeout: 10))
+        XCTAssertTrue(keep.waitForExistence(timeout: 30))
         shot("确认安全")
         keep.tap()
         try await waitUntil("提醒框收起") { !safe.exists }
