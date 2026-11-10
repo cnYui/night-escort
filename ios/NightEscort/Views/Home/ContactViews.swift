@@ -100,9 +100,9 @@ struct ContactCard: View {
                         AsyncButton {
                             try await model.api.revokeGrant(id: g.grantId)
                             await finish()
-                        } label: { Text("移出担保人").foregroundStyle(Theme.danger) }
+                        } label: { Text("不再让她守护我").foregroundStyle(Theme.danger) }
                     } footer: {
-                        Text("移出只影响“她守护我”，你仍然是她的担保人，除非她也移出你。")
+                        Text("只影响“她守护我”，你还在守护她，除非她也把你移出。")
                     }
                 } else {
                     Section {

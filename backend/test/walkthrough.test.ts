@@ -31,10 +31,10 @@ describe('3.1–3.3 加人', () => {
   it('把妈妈加成常驻：妈妈此时看不到任何位置', async () => {
     const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'standing' });
     expect(inv.url).toBe(`https://ye.example.com/i/${inv.token}`);
-    expect(inv.code).toMatch(/^\d{6}$/);
+    expect(inv.code).toBeUndefined(); // 只有二维码和链接，没有 6 位邀请码
     // 妈妈点链接先看到确认页
     const pv = await call(h, mom, 'GET', `/v1/invites/preview?token=${inv.token}`);
-    expect(pv.headline).toBe('小林邀请你长期守护她');
+    expect(pv.headline).toBe('小林想和你互相守护');
     expect(pv.offer_reverse).toBe(true);
     // 出示二维码那边变成“正在确认”
     expect((await call(h, lin, 'GET', `/v1/invites/${inv.id}`)).state).toBe('scanned');
@@ -59,11 +59,11 @@ describe('3.1–3.3 加人', () => {
     const inv = await call(h, lin, 'POST', '/v1/invites', { kind: 'temporary', template: {} });
     // 临时邀请 30 分钟有效
     expect(new Date(inv.expires_at).getTime() - h.clock.now().getTime()).toBe(30 * MIN);
-    const pv = await call(h, zhou, 'GET', `/v1/invites/preview?code=${inv.code}`);
-    expect(pv.headline).toBe('小林请你今晚临时守护她');
+    const pv = await call(h, zhou, 'GET', `/v1/invites/preview?token=${inv.token}`);
+    expect(pv.headline).toBe('小林想和你今晚临时互相守护');
     expect(pv.offer_reverse).toBe(false);
     expect(pv.explain).toContain('她到家后就结束');
-    await call(h, zhou, 'POST', '/v1/invites/accept', { code: inv.code, also_guard_me: true });
+    await call(h, zhou, 'POST', '/v1/invites/accept', { token: inv.token, also_guard_me: true });
     const linConns = await call(h, lin, 'GET', '/v1/connections');
     const z = linConns.find((c: any) => c.peer.id === zhou.id);
     expect(z.guards_me.tier).toBe('temporary');
@@ -71,13 +71,11 @@ describe('3.1–3.3 加人', () => {
     expect(z.i_guard).toBeNull(); // 临时邀请不会反向授权
   });
 
-  it('邀请码输错 5 次锁 10 分钟', async () => {
+  it('只认链接里的 token：随便猜的 token 是 not_found，不再接受 6 位邀请码', async () => {
     const stranger = await signup(h, '路人');
-    for (let i = 0; i < 5; i++) {
-      const r = await call(h, stranger, 'GET', `/v1/invites/preview?code=00000${i}`);
-      expect(r.state).toBe('not_found');
-    }
-    await call(h, stranger, 'GET', '/v1/invites/preview?code=000009', undefined, 429);
+    expect((await call(h, stranger, 'GET', '/v1/invites/preview?token=not-a-real-token')).state).toBe('not_found');
+    await call(h, stranger, 'GET', '/v1/invites/preview?code=000000', undefined, 400);
+    await call(h, stranger, 'POST', '/v1/invites/accept', { code: '000000' }, 400);
   });
 });
 

@@ -6,7 +6,8 @@ import Foundation
  演示模式（只在调试包里有）：不连后端，用一组示例数据把各个界面摆出来，方便在模拟器里截图。
  启动参数 `-demoScene <名字>`，例如：
    xcrun simctl launch booted app.nightescort.ios -demoScene home
- iPhone：login / home / start / active / sos / guarding / incident / me
+ iPhone：login / home / start / active / sos / guarding / incident / me / myhome（设定家庭地址）/ pickplace（地图选点）/ pickplace-page（地图选点整页）
+   / scan（点 + 的扫一扫，add 同）/ mycode（我的 › 我的二维码）/ invite / confirm（朋友的名片，加好友）/ confirm-login
  手表：signin / idle / running / paused / alerting / sos / sosfail / home / message
  */
 enum DemoMode {
@@ -50,6 +51,13 @@ enum DemoData {
             c("p-tt", "唐唐", "同事", daysAgo: 12, guards: nil),
             c("p-aj", "阿杰", "朋友", daysAgo: 23, guards: standing("aj")),
             c("p-xz", "小赵", "同学", daysAgo: 40, guards: nil),
+            c("p-xx", "小许", "室友", daysAgo: 2, guards: nil),
+            c("p-xy", "小雅", "同学", daysAgo: 5, guards: standing("xy")),
+            c("p-ll", "林林", "邻居", daysAgo: 9, guards: nil),
+            c("p-bj", "表姐", "表姐", daysAgo: 15, guards: standing("bj")),
+            c("p-lc", "老陈", "同事", daysAgo: 18, guards: nil),
+            c("p-yy", "悠悠", "朋友", daysAgo: 27, guards: standing("yy")),
+            c("p-dd", "大东", "同学", daysAgo: 31, guards: nil),
         ]
         return decode([Connection].self, "[" + list.joined(separator: ",") + "]")
     }
@@ -101,6 +109,21 @@ enum DemoData {
          {"escort_id":"e-mia","owner":{"id":"p-mia","display_name":"Mia"},"status":"active","my_tier":"temporary","next_due_at":"\(iso(18 * 60))","started_at":"\(iso(-40 * 60))","can_view_location":false},
          {"escort_id":"e-jj","owner":{"id":"p-jj","display_name":"姐姐"},"status":"paused","my_tier":"standing","paused_until":"\(iso(8 * 3600))","started_at":"\(iso(-3 * 3600))","can_view_location":false},
          {"escort_id":"e-mm","owner":{"id":"p-mm","display_name":"妈妈"},"status":"ended","my_tier":"standing","started_at":"\(iso(-5 * 3600))","ended_at":"\(iso(-4 * 3600))","end_reason":"home","can_view_location":false}]
+        """)
+    }
+
+    /// 出示邀请（invite 场景）
+    static var invite: Invite {
+        decode(Invite.self, """
+        {"id":"inv-1","kind":"standing","token":"Xk2pQ9vLmT4wZr8a","url":"https://ye.example.com/i/Xk2pQ9vLmT4wZr8a","expires_at":"\(iso(23 * 3600 + 41 * 60))"}
+        """)
+    }
+
+    /// 朋友扫码或点链接后弹出的名片（confirm 场景）
+    static var invitePreview: InvitePreview {
+        decode(InvitePreview.self, """
+        {"state":"valid","kind":"standing","inviter":{"display_name":"小周"},"expires_at":"\(iso(23 * 3600))",
+         "headline":"小周想和你互相守护","explain":"加为好友后，你们回家时都可以选对方守着。被选中才会收到通知、看到位置，到家就停。","offer_reverse":true}
         """)
     }
 

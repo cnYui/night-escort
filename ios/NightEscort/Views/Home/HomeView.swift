@@ -2,24 +2,41 @@ import EscortKit
 import SwiftUI
 import UIKit
 
-/// 首页：搜索栏 + 「+」，关系图谱，开始护航 / 护航中面板。
+/// 首页：「安全回家」和 + 同一行，搜索栏，谁在守护我（蜂窝气泡），我要回家了 / 回家路上面板。
 struct HomeView: View {
     @EnvironmentObject var model: AppModel
-    @State private var showAdd = false
+    /// 「+」= 扫一扫：扫朋友「我的二维码」加好友。出示自己的码和发链接在「我的」里
+    @State private var showScan = false
+    @State private var scanned: InviteRef?
     @State private var showSearch = false
     @State private var showStart = false
     @State private var selected: Connection?
-    @State private var pendingRemoval: PendingRemoval?
+    /// 在气泡里点选的、这次想让谁守着你；选了人「我要回家了」才浮出来
+    @State private var picked: Set<String> = HomeView.initialPicked
 
-    struct PendingRemoval: Equatable {
-        let connection: Connection
-        let task: Task<Void, Never>
-        static func == (a: Self, b: Self) -> Bool { a.connection.id == b.connection.id }
-    }
+    private var escortOpen: Bool { model.escort?.isOpen == true }
 
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
+                // 标题和 + 放一行，不用系统大标题那种 + 单独占一行
+                HStack(alignment: .center) {
+                    Text("安全回家").font(.pf(size: 34, weight: .bold))
+                    Spacer()
+                    Button { showScan = true } label: {
+                        Image(systemName: "plus").font(.system(size: 19, weight: .semibold))
+                            .frame(width: 24, height: 24)
+                    }
+                    .accessibilityLabel("扫一扫加好友")
+                    .glassButton()
+                    .buttonBorderShape(.circle)
+                    .controlSize(.large)
+                    .accessibilityLabel("添加联系人")
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 4)
+                .padding(.bottom, 10)
+
                 Button { showSearch = true } label: {
                     HStack(spacing: 8) {
                         Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
@@ -32,88 +49,102 @@ struct HomeView: View {
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal)
-                .padding(.top, 4)
 
                 if let inter = model.escort?.intervention, model.escort?.status != .active {
                     InterventionBanner(text: inter.text)
                 }
 
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("谁在守护我").font(.pf(.title3, weight: .semibold))
+                    Text(escortOpen ? "蓝圈的人正在守着你回家。" : "点气泡选这次守着你的人，长按看详情。越久没一起回家，气泡越小。")
+                        .font(.pf(.footnote)).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+
                 GraphView(
                     me: model.user?.displayName ?? "我",
                     connections: model.connections,
-                    inEscort: Set(model.escort?.guardians.map(\.id) ?? []),
-                    onTap: { selected = $0 },
-                    onDragOut: { scheduleRemoval($0) }
+                    inEscort: escortOpen ? Set(model.escort?.guardians.map(\.id) ?? []) : picked,
+                    onTap: { tap($0) },
+                    onDetail: { selected = $0 },
+                    focusOnly: escortOpen
                 )
                 .frame(maxHeight: .infinity)
 
                 if let e = model.escort, e.isOpen {
                     ActiveEscortPanel(escort: e)
-                } else {
-                    HStack(alignment: .center, spacing: 14) {
+                } else if !picked.isEmpty {
+                    // 首页不放求救按钮：求救在回家路上的面板里和手表上。没选人时按钮藏起来，把地方让给气泡
+                    VStack(spacing: 8) {
                         Button { showStart = true } label: {
-                            Label { Text("开始护航").font(.pf(.headline)) } icon: { Image(systemName: "moon.stars.fill") }
-                                .frame(maxWidth: .infinity)
+                            Label { Text("我要回家了").font(.pf(.headline)) } icon: { Image(systemName: "house.fill") }
+                                .padding(.horizontal, 28)
                         }
                         .glassProminentButton()
                         .controlSize(.large)
-                        SOSHoldButton { await model.sos() }
+                        Text("已选 \(pickedNames)，到家前定时报个平安")
+                            .font(.pf(.footnote)).foregroundStyle(.secondary)
+                            .lineLimit(1)
                     }
+                    .frame(maxWidth: .infinity)
                     .padding()
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .overlay(alignment: .bottom) {
-                if let p = pendingRemoval {
-                    HStack {
-                        Text("已移出 \(p.connection.shownName)")
-                        Spacer()
-                        Button("撤销") {
-                            p.task.cancel()
-                            pendingRemoval = nil
-                        }
-                        .bold()
-                    }
-                    .padding()
-                    .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
-                    .padding()
-                    .padding(.bottom, 80)
-                }
-            }
-            .navigationTitle("安全回家")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showAdd = true } label: { Image(systemName: "plus") }
-                        .accessibilityLabel("添加联系人")
-                }
-            }
+            .background(Color(.systemBackground))
+            .toolbar(.hidden, for: .navigationBar)
             #if DEBUG
-            .onAppear { if DemoMode.scene == "start" { showStart = true } }
+            .onAppear {
+                if DemoMode.scene == "start" { showStart = true }
+                if ["add", "scan"].contains(DemoMode.scene ?? "") { showScan = true }
+            }
             #endif
-            .refreshable { await model.refreshAll() }
-            .sheet(isPresented: $showAdd) { AddSheet().environmentObject(model) }
+            // 扫到了先关掉扫码页，关完再弹对方的名片，免得两个弹窗撞在一起
+            .fullScreenCover(isPresented: $showScan, onDismiss: {
+                if let ref = scanned { scanned = nil; model.pendingInvite = ref }
+            }) {
+                ScannerScreen { ref in
+                    scanned = ref
+                    showScan = false
+                }
+                .environmentObject(model)
+            }
             .sheet(isPresented: $showSearch) { SearchView(onPick: { selected = $0 }).environmentObject(model) }
-            .sheet(isPresented: $showStart) { StartEscortView().environmentObject(model) }
+            .sheet(isPresented: $showStart) {
+                // 人已经在气泡里选好了，开始页只剩间隔和目的地，半屏就够
+                StartEscortView(preselected: picked).environmentObject(model)
+                    .presentationDetents(picked.isEmpty ? [.large] : [.medium, .large])
+                    .presentationBackground(Color(.systemGroupedBackground))
+            }
+            .onChange(of: escortOpen) { _, open in if open { picked = [] } }
+            .animation(.spring(duration: 0.35), value: picked.isEmpty)
             .sheet(item: $selected) { c in ContactCard(connection: c).environmentObject(model).presentationDetents([.medium, .large]) }
+            .task { await model.refreshAll() }
         }
     }
 
-    /// 拖出图谱 = 移出担保人，底部 5 秒“撤销”（3.8）
-    private func scheduleRemoval(_ c: Connection) {
-        guard let grant = c.guardsMe else { return }
-        if model.escort?.status == .alerting {
-            // 联系不上时不允许拖动移出，只能从卡片里确认
-            selected = c
-            return
+    /// 点担保人 = 选上 / 取消；还不能守护你的人点了直接看详情；回家路上点谁都是看详情
+    private func tap(_ c: Connection) {
+        guard !escortOpen, c.guardsMe != nil else { selected = c; return }
+        UISelectionFeedbackGenerator().selectionChanged()
+        if picked.contains(c.id) { picked.remove(c.id) } else { picked.insert(c.id) }
+    }
+
+    private var pickedNames: String {
+        let names = model.connections.filter { picked.contains($0.id) }.map(\.shownName)
+        return names.count <= 3 ? names.joined(separator: "、") : names.prefix(3).joined(separator: "、") + " 等 \(names.count) 人"
+    }
+
+    /// 调试截图用：启动参数 `-homePick p-ak,p-mm` 预先选好人
+    private static var initialPicked: Set<String> {
+        #if DEBUG
+        if let s = UserDefaults.standard.string(forKey: "homePick") {
+            return Set(s.split(separator: ",").map { String($0).trimmingCharacters(in: .whitespaces) })
         }
-        let task = Task {
-            try? await Task.sleep(for: .seconds(5))
-            if Task.isCancelled { return }
-            try? await model.api.revokeGrant(id: grant.grantId)
-            await model.refreshAll()
-            pendingRemoval = nil
-        }
-        pendingRemoval = PendingRemoval(connection: c, task: task)
+        #endif
+        return []
     }
 }
 
@@ -157,7 +188,7 @@ struct ActiveEscortPanel: View {
                             Text(Display.countdown(to: due, now: ctx.date))
                                 .font(.pf(size: 52, weight: .semibold))
                                 .monospacedDigit()
-                            Text("后签到 · \(Display.hhmm(due))").font(.pf(.subheadline)).foregroundStyle(.secondary)
+                            Text("后报平安 · \(Display.hhmm(due))").font(.pf(.subheadline)).foregroundStyle(.secondary)
                         }
                         ProgressView(value: progress(due: due, now: ctx.date))
                     } else {
@@ -177,7 +208,7 @@ struct ActiveEscortPanel: View {
                 Menu {
                     Button("我到了，结束") { Task { await model.checkin(.arrived) } }
                     Button("我在别处过夜，结束") { Task { await model.checkin(.elsewhere) } }
-                    Button("结束护航", role: .destructive) { Task { await model.endEscort() } }
+                    Button("结束，不用再守了", role: .destructive) { Task { await model.endEscort() } }
                 } label: {
                     Text("结束").font(.pf(.headline)).padding(.horizontal, 6)
                 }
@@ -199,7 +230,7 @@ struct ActiveEscortPanel: View {
         switch escort.status {
         case .alerting: return escort.incident?.isSOS == true ? "已发出求救" : "需要你回应"
         case .paused: return "已暂停"
-        default: return "护航中"
+        default: return "回家路上"
         }
     }
 
@@ -255,7 +286,7 @@ struct SOSHoldButton: View {
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("紧急求救")
-        .accessibilityHint("长按两秒，立刻通知你所有的担保人")
+        .accessibilityHint("长按两秒，立刻通知所有守护你的人")
         .accessibilityAddTraits(.isButton)
         .accessibilityAction { fire() }
     }

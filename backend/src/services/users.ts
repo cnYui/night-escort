@@ -2,6 +2,7 @@
 import { many, one, tx } from '../db.js';
 import type { Deps } from '../deps.js';
 import { badRequest } from '../errors.js';
+import { randomToken } from '../infra/crypto.js';
 import { publicUser, type AuthContext } from './auth.js';
 import { endEscortTx, lockEscort } from './escorts.js';
 
@@ -59,6 +60,47 @@ export async function updateProfile(d: Deps, userId: string, p: { display_name?:
 }
 
 /** 删除账号：所有连接、授权、位置立即删除，开放中的事件先关闭再删（3.9）。 */
+/** 头像最大 300KB：App 传的是 512px 以内的 JPEG，一般 30–80KB */
+export const AVATAR_MAX_BYTES = 300 * 1024;
+const PNG_MAGIC = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+
+/** 换头像：只认 JPEG / PNG（看文件头，不信请求里的类型），旧的一起删掉，返回新的资料。 */
+export async function setAvatar(d: Deps, userId: string, data: unknown) {
+  if (!Buffer.isBuffer(data) || data.length === 0) throw badRequest('avatar_empty', '没有收到图片');
+  if (data.length > AVATAR_MAX_BYTES) throw badRequest('avatar_too_large', '图片太大了，换一张小一点的');
+  const jpeg = data.length > 3 && data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff;
+  const png = data.length > 8 && data.subarray(0, 8).equals(PNG_MAGIC);
+  if (!jpeg && !png) throw badRequest('avatar_format', '只支持 JPEG 或 PNG 图片');
+  const token = randomToken(16);
+  const url = `${d.config.publicBaseUrl}/avatars/${token}.${jpeg ? 'jpg' : 'png'}`;
+  await tx(d.db, async (c) => {
+    await c.query(`DELETE FROM avatars WHERE user_id = $1`, [userId]);
+    await c.query(`INSERT INTO avatars (token, user_id, content_type, data, created_at) VALUES ($1, $2, $3, $4, $5)`, [
+      token,
+      userId,
+      jpeg ? 'image/jpeg' : 'image/png',
+      data,
+      d.clock.now(),
+    ]);
+    await c.query(`UPDATE users SET avatar_url = $2 WHERE id = $1`, [userId, url]);
+  });
+  return publicUser(d, d.db, userId);
+}
+
+/** 去掉头像，回到名字首字的默认头像。 */
+export async function removeAvatar(d: Deps, userId: string) {
+  await tx(d.db, async (c) => {
+    await c.query(`DELETE FROM avatars WHERE user_id = $1`, [userId]);
+    await c.query(`UPDATE users SET avatar_url = NULL WHERE id = $1`, [userId]);
+  });
+  return publicUser(d, d.db, userId);
+}
+
+/** 公开读头像：只按随机串找，找不到就是 null。 */
+export async function avatarFile(d: Deps, token: string) {
+  return one<{ content_type: string; data: Buffer }>(d.db, `SELECT content_type, data FROM avatars WHERE token = $1`, [token]);
+}
+
 export async function deleteAccount(d: Deps, userId: string) {
   const open = await one<{ id: string }>(d.db, `SELECT id FROM escorts WHERE owner_id = $1 AND status <> 'ended'`, [userId]);
   if (open) {
