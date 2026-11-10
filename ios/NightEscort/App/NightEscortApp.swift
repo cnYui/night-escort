@@ -26,6 +26,10 @@ struct NightEscortApp: App {
 
 final class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        AppAppearance.apply()
+        #if DEBUG
+        if DemoMode.scene != nil { return true }
+        #endif
         NotificationService.shared.registerCategories()
         UNUserNotificationCenter.current().delegate = NotificationService.shared
         WatchBridge.shared.activate()
@@ -39,5 +43,21 @@ final class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
         print("APNs 注册失败：\(error)")
+    }
+}
+
+/// 系统导航栏、标签栏的字也用苹方（SwiftUI 的 .font 管不到这两处）
+enum AppAppearance {
+    static func apply() {
+        func pf(_ name: String, _ size: CGFloat, _ style: UIFont.TextStyle) -> UIFont {
+            let base = UIFont(name: name, size: size) ?? .systemFont(ofSize: size)
+            return UIFontMetrics(forTextStyle: style).scaledFont(for: base)
+        }
+        let nav = UINavigationBar.appearance()
+        nav.largeTitleTextAttributes = [.font: pf("PingFangSC-Semibold", 34, .largeTitle)]
+        nav.titleTextAttributes = [.font: pf("PingFangSC-Semibold", 17, .headline)]
+        let item = UITabBarItem.appearance()
+        item.setTitleTextAttributes([.font: pf("PingFangSC-Medium", 10, .caption2)], for: .normal)
+        UIBarButtonItem.appearance().setTitleTextAttributes([.font: pf("PingFangSC-Regular", 17, .body)], for: .normal)
     }
 }

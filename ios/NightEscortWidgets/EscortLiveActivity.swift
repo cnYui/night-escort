@@ -20,21 +20,21 @@ struct EscortLiveActivity: Widget {
         } dynamicIsland: { ctx in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label("\(ctx.state.guardianCount) 人在守", systemImage: "shield.fill").font(.caption)
+                    Label("\(ctx.state.guardianCount) 人在守", systemImage: "shield.fill").font(.pf(.caption))
                 }
                 DynamicIslandExpandedRegion(.trailing) {
-                    CountdownText(state: ctx.state).font(.title3.monospacedDigit())
+                    CountdownText(state: ctx.state).font(.pf(.title3).monospacedDigit())
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    Text(StatusText.line(ctx.state)).font(.footnote).foregroundStyle(.secondary)
+                    Text(StatusText.line(ctx.state)).font(.pf(.footnote)).foregroundStyle(.secondary)
                 }
             } compactLeading: {
                 Image(systemName: ctx.state.status == "alerting" ? "exclamationmark.shield.fill" : "moon.stars.fill")
-                    .foregroundStyle(ctx.state.status == "alerting" ? .red : .indigo)
+                    .foregroundStyle(ctx.state.status == "alerting" ? .red : .blue)
             } compactTrailing: {
                 CountdownText(state: ctx.state).monospacedDigit().frame(maxWidth: 48)
             } minimal: {
-                Image(systemName: "moon.stars.fill").foregroundStyle(.indigo)
+                Image(systemName: "moon.stars.fill").foregroundStyle(.blue)
             }
         }
     }
@@ -45,11 +45,11 @@ private struct LockScreenView: View {
     var body: some View {
         HStack {
             VStack(alignment: .leading, spacing: 4) {
-                Text("安全回家").font(.headline)
-                Text(StatusText.line(state)).font(.subheadline).foregroundStyle(.secondary)
+                Text("安全回家").font(.pf(.headline))
+                Text(StatusText.line(state)).font(.pf(.subheadline)).foregroundStyle(.secondary)
             }
             Spacer()
-            CountdownText(state: state).font(.title.monospacedDigit().weight(.semibold))
+            CountdownText(state: state).font(.pf(.title, weight: .semibold).monospacedDigit())
         }
     }
 }

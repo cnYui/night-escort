@@ -20,7 +20,7 @@ struct AddSheet: View {
                     NavigationLink {
                         InviteView(kind: .standing, template: nil)
                     } label: {
-                        Label { VStack(alignment: .leading) { Text("长期守护我的人"); Text("爸妈、伴侣、长期室友").font(.caption).foregroundStyle(.secondary) } } icon: {
+                        Label { VStack(alignment: .leading) { Text("长期守护我的人"); Text("爸妈、伴侣、长期室友").font(.pf(.caption)).foregroundStyle(.secondary) } } icon: {
                             Image(systemName: "house.fill").foregroundStyle(Theme.accent)
                         }
                     }
@@ -29,12 +29,13 @@ struct AddSheet: View {
                             .safeAreaInset(edge: .bottom) {
                                 NavigationLink {
                                     InviteView(kind: .temporary, template: template)
-                                } label: { Text("生成二维码").frame(maxWidth: .infinity) }
-                                .buttonStyle(PrimaryButtonStyle(color: Theme.temporary))
+                                } label: { Text("生成二维码").font(.pf(.headline)).frame(maxWidth: .infinity) }
+                                .glassProminentButton(tint: Theme.temporary)
+                                .controlSize(.large)
                                 .padding()
                             }
                     } label: {
-                        Label { VStack(alignment: .leading) { Text("今晚临时一起的人"); Text("聚会上刚认识、今晚顺路的人").font(.caption).foregroundStyle(.secondary) } } icon: {
+                        Label { VStack(alignment: .leading) { Text("今晚临时一起的人"); Text("聚会上刚认识、今晚顺路的人").font(.pf(.caption)).foregroundStyle(.secondary) } } icon: {
                             Image(systemName: "hourglass").foregroundStyle(Theme.temporary)
                         }
                     }
@@ -93,10 +94,10 @@ struct InviteView: View {
                     QRCodeImage(text: inv.url).frame(width: 240, height: 240)
                         .overlay(AvatarView(name: model.user?.displayName ?? "我", size: 48).background(Circle().fill(.white).padding(-4)))
                 case .code:
-                    Text(inv.code).font(.system(size: 48, weight: .semibold, design: .monospaced)).kerning(8).textSelection(.enabled)
+                    Text(inv.code).font(.pf(size: 48, weight: .semibold).monospacedDigit()).kerning(8).textSelection(.enabled)
                 case .link:
                     VStack(spacing: 12) {
-                        Text(inv.url).font(.footnote).textSelection(.enabled).multilineTextAlignment(.center).padding(.horizontal)
+                        Text(inv.url).font(.pf(.footnote)).textSelection(.enabled).multilineTextAlignment(.center).padding(.horizontal)
                         ShareLink(item: URL(string: inv.url)!, message: Text("\(model.user?.displayName ?? "我")邀请你\(kind == .standing ? "长期守护" : "今晚临时守护")她，邀请码 \(inv.code)")) {
                             Label("发给对方", systemImage: "square.and.arrow.up")
                         }
@@ -131,7 +132,7 @@ struct InviteView: View {
             ? "长期守护 · 24 小时内有效"
             : "今晚临时 · \(template?.locationScope == .live ? "全程可见位置" : "仅报警时可见位置") · 30 分钟内有效"
         return Text(text)
-            .font(.subheadline.weight(.semibold))
+            .font(.pf(.subheadline, weight: .semibold))
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .background((kind == .standing ? Theme.accent : Theme.temporary).opacity(0.15))
@@ -148,7 +149,7 @@ struct InviteView: View {
             default: Text("\(Display.countdown(to: inv.expiresAt, now: ctx.date)) 后过期").foregroundStyle(.secondary).monospacedDigit()
             }
         }
-        .font(.subheadline)
+        .font(.pf(.subheadline))
     }
 
     private func create() async {
@@ -199,17 +200,18 @@ struct EnterCodeView: View {
 
     var body: some View {
         VStack(spacing: 16) {
-            Text("有人邀请你？").font(.title3.bold())
+            Text("有人邀请你？").font(.pf(.title3, weight: .semibold))
             TextField("6 位邀请码", text: $code)
                 .keyboardType(.numberPad)
-                .font(.system(size: 32, weight: .semibold, design: .monospaced))
+                .font(.pf(size: 32, weight: .semibold).monospacedDigit())
                 .multilineTextAlignment(.center)
                 .onChange(of: code) { _, v in code = String(v.filter(\.isNumber).prefix(6)) }
             PasteButton(payloadType: String.self) { strings in
                 if let c = strings.compactMap({ InviteLink.findCode(in: $0) }).first { code = c }
             }
-            Button("下一步") { onDone(code) }
-                .buttonStyle(PrimaryButtonStyle())
+            Button { onDone(code) } label: { Text("下一步").font(.pf(.headline)).frame(maxWidth: .infinity) }
+                .glassProminentButton()
+                .controlSize(.large)
                 .disabled(code.count != 6)
         }
         .padding(24)

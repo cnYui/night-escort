@@ -23,6 +23,7 @@ targets:
     platform: iOS
     sources:
       - NightEscort
+      - Shared
     dependencies:
       - package: EscortKit
       - target: NightEscortWidgets
@@ -40,6 +41,8 @@ targets:
     info:
       path: NightEscort/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         NEApiBaseURL: $(API_BASE_URL)
         NEInviteHost: $(INVITE_HOST)
@@ -66,6 +69,7 @@ targets:
     platform: iOS
     sources:
       - NightEscortWidgets
+      - Shared
     dependencies:
       - package: EscortKit
       - sdk: WidgetKit.framework
@@ -73,6 +77,8 @@ targets:
     info:
       path: NightEscortWidgets/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
@@ -86,11 +92,14 @@ targets:
     platform: watchOS
     sources:
       - NightEscortWatch
+      - Shared
     dependencies:
       - package: EscortKit
     info:
       path: NightEscortWatch/Info.plist
       properties:
+        CFBundleDevelopmentRegion: zh-Hans
+        CFBundleLocalizations: [zh-Hans]
         CFBundleDisplayName: 安全回家
         WKApplication: true
         WKCompanionAppBundleIdentifier: app.nightescort.ios

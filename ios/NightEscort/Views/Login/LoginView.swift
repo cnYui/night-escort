@@ -47,7 +47,7 @@ struct LoginView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("安全回家").font(.largeTitle.bold())
+                    Text("安全回家").font(.pf(.largeTitle, weight: .semibold))
                     Text("回家路上，有人一直在").foregroundStyle(.secondary)
                 }
                 .padding(.vertical, 24)
@@ -55,7 +55,7 @@ struct LoginView: View {
                 TextField("手机号", text: $phone)
                     .keyboardType(.phonePad)
                     .textContentType(.telephoneNumber)
-                    .padding().background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
 
                 if mode == .code {
                     HStack {
@@ -69,33 +69,34 @@ struct LoginView: View {
                         }
                         .disabled(cooldown > 0 || !agreed)
                     }
-                    .padding().background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
                 } else {
                     SecureField("密码", text: $password)
                         .textContentType(.password)
-                        .padding().background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
                 }
 
                 Toggle(isOn: $agreed) {
-                    Text("我已阅读并同意《用户协议》和《隐私政策》").font(.footnote)
+                    Text("我已阅读并同意《用户协议》和《隐私政策》").font(.pf(.footnote))
                 }
                 .toggleStyle(CheckboxStyle())
 
-                if let error { Text(error).font(.footnote).foregroundStyle(Theme.danger) }
+                if let error { Text(error).font(.pf(.footnote)).foregroundStyle(Theme.danger) }
 
                 AsyncButton {
                     try await submit()
                 } label: {
-                    Text("登录").frame(maxWidth: .infinity)
+                    Text("登录").font(.pf(.headline)).frame(maxWidth: .infinity)
                 }
-                .buttonStyle(PrimaryButtonStyle())
+                .glassProminentButton()
+                .controlSize(.large)
                 .disabled(!agreed)
 
                 Button(mode == .code ? "密码登录" : "验证码登录") {
                     mode = mode == .code ? .password : .code
                     error = nil
                 }
-                .font(.subheadline)
+                .font(.pf(.subheadline))
                 .frame(maxWidth: .infinity)
 
                 Divider().padding(.vertical, 8)
@@ -106,9 +107,15 @@ struct LoginView: View {
                             Task { await run { try await model.api.loginWithWeChat(code: code) } }
                         }
                     } label: {
-                        Label("微信登录", systemImage: "message.fill").frame(maxWidth: .infinity)
+                        Label {
+                            Text("微信登录").font(.pf(.headline)).foregroundStyle(.primary)
+                        } icon: {
+                            Image(systemName: "message.fill").foregroundStyle(Color(red: 0.03, green: 0.76, blue: 0.38))
+                        }
+                        .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(PrimaryButtonStyle(color: Color(red: 0.03, green: 0.76, blue: 0.38)))
+                    .glassButton()
+                    .controlSize(.large)
                     .disabled(!agreed)
 
                     SignInWithAppleButton(.signIn) { req in
@@ -120,12 +127,12 @@ struct LoginView: View {
                         Task { await run { try await model.api.loginWithApple(identityToken: token) } }
                     }
                     .signInWithAppleButtonStyle(.black)
-                    .frame(height: 48)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    .frame(height: 52)
+                    .clipShape(Capsule())
                     .disabled(!agreed)
                 }
                 Text("微信或 Apple 登录后需要绑定手机号，一个手机号只能注册一个账号。")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.pf(.caption)).foregroundStyle(.secondary)
             }
             .padding(20)
         }

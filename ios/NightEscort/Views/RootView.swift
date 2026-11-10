@@ -66,16 +66,32 @@ struct IdentifiedRef: Identifiable {
 
 struct MainTabs: View {
     @EnvironmentObject var model: AppModel
+    @State private var tab = MainTabs.initialTab
 
     var body: some View {
-        TabView {
+        TabView(selection: $tab) {
             HomeView()
                 .tabItem { Label("首页", systemImage: "person.3.fill") }
+                .tag(0)
             GuardingView()
                 .tabItem { Label("守护", systemImage: "shield.lefthalf.filled") }
                 .badge(model.cards.filter { $0.status == .alerting }.count)
+                .tag(1)
             SettingsView()
-                .tabItem { Label("我的", systemImage: "gearshape.fill") }
+                .tabItem { Label("我的", systemImage: "person.crop.circle") }
+                .tag(2)
         }
+    }
+
+    private static var initialTab: Int {
+        #if DEBUG
+        switch DemoMode.scene {
+        case "guarding", "incident": return 1
+        case "me": return 2
+        default: return 0
+        }
+        #else
+        return 0
+        #endif
     }
 }

@@ -16,7 +16,11 @@ final class WatchModel: NSObject, ObservableObject {
     @Published private(set) var escort: Escort?
     @Published private(set) var signedIn = false
     @Published var askHome: String?
-    @Published var message: String?
+    @Published var message: String? {
+        didSet { if message == nil { offerEmergencyCall = false } }
+    }
+    /// 求救没发出去时为 true：提示页上给一个直接拨 110 的按钮
+    @Published private(set) var offerEmergencyCall = false
     @Published var busy = false
 
     private let tokens = KeychainTokenStore(account: "watch")
@@ -34,11 +38,35 @@ final class WatchModel: NSObject, ObservableObject {
         location.desiredAccuracy = kCLLocationAccuracyNearestTenMeters
         location.distanceFilter = 30
         rebuildAPI()
+        #if DEBUG
+        if let scene = DemoMode.scene {
+            loadDemo(scene)
+            return
+        }
+        #endif
         if WCSession.isSupported() {
             WCSession.default.delegate = self
             WCSession.default.activate()
         }
     }
+
+    #if DEBUG
+    /// 演示模式：不连手机和后端，直接摆出某个界面（见 Shared/DemoData.swift）
+    private func loadDemo(_ scene: String) {
+        api = nil
+        signedIn = scene != "signin"
+        switch scene {
+        case "running": escort = DemoData.escort("active")
+        case "paused": escort = DemoData.escort("paused")
+        case "alerting": escort = DemoData.escort("alerting")
+        case "sos": escort = DemoData.escort("alerting", sos: true)
+        case "home": escort = DemoData.escort("active"); askHome = "家"
+        case "message": message = "还没有默认担保人，请在 iPhone 上开始"
+        case "sosfail": sosFailed("可能是网络问题。情况紧急请直接拨打 110")
+        default: break
+        }
+    }
+    #endif
 
     private func rebuildAPI() {
         guard let url = baseURL, tokens.load() != nil else {
@@ -103,7 +131,7 @@ final class WatchModel: NSObject, ObservableObject {
     /// 一键求救：正在护航就立刻升级；没在护航就用全部担保人开一次护航并立刻响铃
     func sos() async {
         guard let api else {
-            message = "还没登录，求救发不出去。请直接拨打 110"
+            sosFailed("手表还没登录。情况紧急请直接拨打 110")
             return
         }
         busy = true
@@ -114,11 +142,26 @@ final class WatchModel: NSObject, ObservableObject {
             syncLocationTracking()
         } catch let e as APIError {
             WKInterfaceDevice.current().play(.failure)
-            message = e.code == "no_guardian" ? e.message : "求救没发出去：\(e.message)。请直接拨打 110"
+            let reason = e.code == "no_guardian"
+                ? "你还没有担保人"
+                : e.message.trimmingCharacters(in: CharacterSet(charactersIn: "。．. "))
+            sosFailed("\(reason)。情况紧急请直接拨打 110")
         } catch {
             WKInterfaceDevice.current().play(.failure)
-            message = "求救没发出去，请直接拨打 110"
+            sosFailed("可能是网络问题。情况紧急请直接拨打 110")
         }
+    }
+
+    /// 求救失败：提示原因，并在提示页上给“拨打 110”按钮
+    private func sosFailed(_ text: String) {
+        offerEmergencyCall = true
+        message = text
+    }
+
+    /// 拨打 110：系统会先弹出确认，再用手表或配对的 iPhone 打出去
+    func callEmergency() {
+        guard let url = URL(string: "tel:110") else { return }
+        WKApplication.shared().openSystemURL(url)
     }
 
     func checkin(_ action: CheckinAction = .ok) async {

@@ -48,7 +48,7 @@ struct SearchView: View {
                     AvatarView(name: c.shownName, url: c.peer.avatarUrl, size: 36)
                     VStack(alignment: .leading) {
                         Text(c.shownName)
-                        if let r = c.relation { Text(r).font(.caption).foregroundStyle(.secondary) }
+                        if let r = c.relation { Text(r).font(.pf(.caption)).foregroundStyle(.secondary) }
                     }
                     Spacer()
                     if let g = c.guardsMe { TierBadge(tier: g.tier) }
@@ -75,14 +75,14 @@ struct ContactCard: View {
                     HStack(spacing: 14) {
                         AvatarView(name: connection.shownName, url: connection.peer.avatarUrl, size: 56)
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(connection.shownName).font(.title3.bold())
+                            Text(connection.shownName).font(.pf(.title3, weight: .semibold))
                             if let g = connection.guardsMe {
-                                HStack { TierBadge(tier: g.tier); Text(g.canSee).font(.footnote).foregroundStyle(.secondary) }
+                                HStack { TierBadge(tier: g.tier); Text(g.canSee).font(.pf(.footnote)).foregroundStyle(.secondary) }
                             } else {
-                                Text("仅连接：不能被选进护航，看不到你的位置").font(.footnote).foregroundStyle(.secondary)
+                                Text("仅连接：不能被选进护航，看不到你的位置").font(.pf(.footnote)).foregroundStyle(.secondary)
                             }
                             if connection.iGuard != nil {
-                                Text("你也在守护她").font(.caption).foregroundStyle(.secondary)
+                                Text("你也在守护她").font(.pf(.caption)).foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -185,7 +185,7 @@ struct TemporaryPermissionForm: View {
             }
             Section {
                 Text(Display.temporarySummary(name: name, template: template))
-                    .font(.footnote)
+                    .font(.pf(.footnote))
                     .foregroundStyle(.secondary)
             }
         }
