@@ -37,6 +37,8 @@ TEST_DATABASE_URL=postgres://postgres@127.0.0.1:5432/escort_test npm test
 
 开发环境下验证码打印在日志里，推送只记录不发送。生产需要配好 `.env.example` 里的 JWT、手机号加密密钥、阿里云短信（只用于登录验证码）、APNs key 和微信开放平台参数。
 
+部署到服务器（真机测试和 TestFlight 用）见 [`deploy/README.md`](deploy/README.md)：Docker 跑后端、PostgreSQL、Redis，Caddy 自动 https，每天备份数据库。
+
 接口都在 `/v1` 下，见 `backend/src/http/routes.ts`。实时位置走 WebSocket `/v1/ws`。邀请落地页是 `/i/:token`：装了 App 一键打开（`anquanhuijia://i/<token>`），没装时先把链接复制进粘贴板再引导 TestFlight / App Store，装完打开 App 会从粘贴板认出邀请；`/.well-known/apple-app-site-association` 用于通用链接。
 
 ## iOS 和 Apple Watch
@@ -51,6 +53,12 @@ open NightEscort.xcodeproj
 ```
 
 后端地址和邀请域名在 `ios/project.yml` 的 `API_BASE_URL`、`INVITE_HOST` 里改。真机运行要在工程里填自己的开发者团队。紧急提醒（critical alerts）需要先向 Apple 申请权限，拿到后在 entitlements 里加 `com.apple.developer.usernotifications.critical-alerts`；没申请到时自动降级为“时效性通知 + 闹铃声”。
+
+打包上传 TestFlight：手表 App 和小组件嵌在 iPhone App 里，归档一次就行。第一次建议在 Mac 前用 Xcode 的 Organizer 上传，之后可以用脚本（参数说明在脚本开头）：
+
+```bash
+TEAM_ID=你的团队ID API_HOST=后端域名 ios/scripts/testflight.sh
+```
 
 共享包测试：
 

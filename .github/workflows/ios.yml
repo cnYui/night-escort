@@ -33,6 +33,14 @@ jobs:
             -destination 'generic/platform=iOS Simulator' \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tee build-ios.log | grep -E "error:|warning: unre|BUILD" || true
           grep -q "BUILD SUCCEEDED" build-ios.log
+      - name: 编译界面测试（不运行，运行要连后端，在 Mac 上用 ios/scripts/mvp-e2e.sh）
+        working-directory: ios
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing -project NightEscort.xcodeproj -scheme NightEscortUITests \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tee build-uitests.log | grep -E "error:|BUILD|TEST BUILD" || true
+          grep -qE "TEST BUILD SUCCEEDED|BUILD SUCCEEDED" build-uitests.log
       - name: 编译手表 App
         working-directory: ios
         run: |

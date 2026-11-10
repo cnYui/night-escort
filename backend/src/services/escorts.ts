@@ -85,13 +85,21 @@ export async function activeGuardians(q: Queryable, escortId: string) {
 
 // ───────────── 担保人就绪检查（4.3） ─────────────
 
+/**
+ * 收得到通知要有推送令牌。只有开发环境没配 APNs 时例外：本来就发不出推送，模拟器也拿不到令牌，
+ * 这时只看通知开关，不然本地联调永远开始不了护航。
+ */
+function requiresPushToken(d: Deps): boolean {
+  return d.config.env === 'production' || d.config.apns.enabled;
+}
+
 export async function readiness(d: Deps, q: Queryable, userIds: string[]) {
   const since = new Date(d.clock.now().getTime() - READY_WINDOW_MS);
   const rows = await many<{ user_id: string; notif: boolean; critical: boolean; opened: Date | null }>(
     q,
-    `SELECT user_id, bool_or(notif_allowed AND apns_token IS NOT NULL) AS notif, bool_or(critical_allowed) AS critical, max(last_opened_at) AS opened
+    `SELECT user_id, bool_or(notif_allowed AND (apns_token IS NOT NULL OR NOT $2)) AS notif, bool_or(critical_allowed) AS critical, max(last_opened_at) AS opened
        FROM devices WHERE user_id = ANY($1::uuid[]) AND kind = 'iphone' GROUP BY user_id`,
-    [userIds],
+    [userIds, requiresPushToken(d)],
   );
   const map = new Map(rows.map((r) => [r.user_id, r]));
   return Object.fromEntries(

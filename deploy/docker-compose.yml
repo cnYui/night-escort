@@ -1,0 +1,65 @@
+# 生产部署：后端 + PostgreSQL + Redis + Caddy（自动申请 https 证书）+ 每日数据库备份。
+# 用法见 deploy/README.md。所有配置放在同目录的 .env（从 .env.example 复制）。
+services:
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: night_escort
+      POSTGRES_USER: escort
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?在 .env 里设置 POSTGRES_PASSWORD}
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U escort -d night_escort"]
+      interval: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes: [redisdata:/data]
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      NODE_ENV: production
+      PORT: "8080"
+      DATABASE_URL: postgres://escort:${POSTGRES_PASSWORD}@postgres:5432/night_escort
+      REDIS_URL: redis://redis:6379
+      PUBLIC_BASE_URL: https://${DOMAIN:?在 .env 里设置 DOMAIN}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_started }
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports: ["80:80", "443:443"]
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddydata:/data
+    depends_on: [backend]
+
+  # 每天凌晨 4 点（北京时间）导出一份数据库到 deploy/backups/，保留 14 天
+  backup:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Asia/Shanghai
+    volumes:
+      - ./backups:/backups
+      - ./backup.sh:/backup.sh:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+    entrypoint: ["/bin/sh", "/backup.sh"]
+
+volumes:
+  pgdata:
+  redisdata:
+  caddydata:

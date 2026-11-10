@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis';
-import { systemClock } from './clock.js';
+import { OffsetClock, systemClock } from './clock.js';
 import { loadConfig } from './config.js';
 import { createPool, migrate } from './db.js';
 import type { Deps } from './deps.js';
@@ -28,7 +28,7 @@ const deps: Deps = {
   config,
   db,
   kv: redis ? new RedisKV(redis) : new MemoryKV(),
-  clock: systemClock,
+  clock: config.devTools ? new OffsetClock() : systemClock,
   bus: new Bus(),
   latest: redis ? new RedisLatest(redis) : new MemoryLatest(),
   phone: new PhoneCrypto(config.phonePepper, config.phoneKeyHex),

@@ -20,6 +20,7 @@ struct NightEscortApp: App {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { Task { await model.appBecameActive() } }
+            if phase == .background { model.appEnteredBackground() }
         }
     }
 }

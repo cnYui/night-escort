@@ -7,3 +7,5 @@ DerivedData/
 .build/
 .swiftpm/
 xcuserdata/
+build/
+NightEscortWatch/NightEscortWatch.entitlements

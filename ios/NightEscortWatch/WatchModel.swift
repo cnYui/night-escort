@@ -1,6 +1,7 @@
 import CoreLocation
 import EscortKit
 import Foundation
+import UserNotifications
 import WatchConnectivity
 import WatchKit
 
@@ -74,8 +75,44 @@ final class WatchModel: NSObject, ObservableObject {
             signedIn = false
             return
         }
-        api = APIClient(baseURL: url, tokens: tokens, device: DeviceInfo(kind: .watch, appVersion: Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String))
+        api = APIClient(baseURL: url, tokens: tokens, device: DeviceInfo(kind: .watch, appVersion: appVersion))
         signedIn = true
+        registerForPush()
+    }
+
+    private var appVersion: String? { Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String }
+
+    // MARK: 推送
+
+    private var pushToken: String?
+
+    /// 登录后申请通知权限并注册 APNs；拿到令牌后在 didRegisterPushToken 里上报，后端的手表推送才有地方发
+    private func registerForPush() {
+        #if DEBUG
+        if DemoMode.scene != nil { return }
+        #endif
+        Task {
+            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound])
+            WKApplication.shared().registerForRemoteNotifications()
+            await reportDevice()
+        }
+    }
+
+    func didRegisterPushToken(_ token: String) async {
+        pushToken = token
+        await reportDevice()
+    }
+
+    private func reportDevice() async {
+        guard let api else { return }
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        let allowed = settings.authorizationStatus == .authorized || settings.authorizationStatus == .provisional
+        #if DEBUG
+        let env = "sandbox"
+        #else
+        let env = "production"
+        #endif
+        try? await api.updateDevice(.init(apnsToken: pushToken, apnsEnv: env, appVersion: appVersion, notifAllowed: allowed, opened: true))
     }
 
     #if DEBUG

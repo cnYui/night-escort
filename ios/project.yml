@@ -24,6 +24,9 @@ targets:
     sources:
       - NightEscort
       - Shared
+      # 用户协议和隐私政策：和后端 /legal 网页同一份
+      - path: ../backend/legal
+        buildPhase: resources
     dependencies:
       - package: EscortKit
       - target: NightEscortWidgets
@@ -99,6 +102,10 @@ targets:
       - Shared
     dependencies:
       - package: EscortKit
+    entitlements:
+      path: NightEscortWatch/NightEscortWatch.entitlements
+      properties:
+        aps-environment: development
     info:
       path: NightEscortWatch/Info.plist
       properties:
@@ -117,7 +124,32 @@ targets:
         TARGETED_DEVICE_FAMILY: "4"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
 
+  # 第一版 MVP 端到端界面测试：App 连真后端，测试进程扮演好友（见 NightEscortUITests/MVPFlowTests.swift、scripts/mvp-e2e.sh）
+  NightEscortUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - NightEscortUITests
+    dependencies:
+      - target: NightEscort
+      - package: EscortKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.nightescort.ios.uitests
+        TARGETED_DEVICE_FAMILY: "1"
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: NightEscort
+
 schemes:
+  NightEscortUITests:
+    build:
+      targets:
+        NightEscort: all
+        NightEscortUITests: [test]
+    test:
+      config: Debug
+      targets:
+        - NightEscortUITests
   NightEscort:
     build:
       targets:
