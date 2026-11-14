@@ -30,7 +30,7 @@ enum HomePeople {
 struct GraphView: View {
     let me: String
     let connections: [Connection]
-    /// 带蓝圈的人：没出发时是你点选的人，回家路上是正在守着你的人
+    /// 带选中圈的人：没出发时是你点选的人，回家路上是正在守着你的人
     let inEscort: Set<String>
     let onTap: (Connection) -> Void
     /// 长按气泡看详情
@@ -116,10 +116,10 @@ struct GraphView: View {
 
             let meAt = place(cells[0])
             if meAt.scale > 0.05 {
-                // 自己用系统蓝，不再额外写「我」，免得和周围的名字挤在一起
-                AvatarView(name: me, size: Self.meSize * z * meAt.scale, tint: Theme.accent)
-                    .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 3))
-                    .shadow(color: Theme.accent.opacity(0.25), radius: 12, y: 5)
+                // 自己用醒目的颜色，不再额外写「我」，免得和周围的名字挤在一起
+                AvatarView(name: me, size: Self.meSize * z * meAt.scale, tint: Theme.me, ink: Theme.onMe)
+                    .overlay(Circle().stroke(Theme.page, lineWidth: 3))
+                    .shadow(color: Theme.me.opacity(0.25), radius: 12, y: 5)
                     .accessibilityLabel("我")
                     .position(meAt.point)
             }
@@ -240,15 +240,15 @@ private struct HexBubble: View {
         let c = connection
         VStack(spacing: 3) {
             AvatarView(name: c.shownName, url: c.peer.avatarUrl, size: diameter)
-                .overlay(Circle().stroke(chosen ? Theme.accent : Color(.systemBackground), lineWidth: chosen ? 3 : 2))
+                .overlay(Circle().stroke(chosen ? Theme.ring : Theme.page, lineWidth: chosen ? 3 : 2))
                 .shadow(color: .black.opacity(0.10), radius: 8, y: 4)
                 .overlay(alignment: .bottomTrailing) {
                     if chosen && diameter > 34 {
                         Image(systemName: "checkmark").font(.system(size: 10, weight: .heavy))
                             .frame(width: 20, height: 20)
-                            .background(Theme.accent, in: Circle())
-                            .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
-                            .foregroundStyle(.white)
+                            .background(Theme.ring, in: Circle())
+                            .overlay(Circle().stroke(Theme.page, lineWidth: 2))
+                            .foregroundStyle(Theme.onRing)
                             .offset(x: 10 - diameter * 0.146, y: 10 - diameter * 0.146)
                     }
                 }
@@ -257,8 +257,8 @@ private struct HexBubble: View {
                         Image(systemName: "hourglass").font(.system(size: 9, weight: .bold))
                             .frame(width: 20, height: 20)
                             .background(Theme.temporary, in: Circle())
-                            .overlay(Circle().stroke(Color(.systemBackground), lineWidth: 2))
-                            .foregroundStyle(.white)
+                            .overlay(Circle().stroke(Theme.page, lineWidth: 2))
+                            .foregroundStyle(Theme.onTemporary)
                             .offset(x: 10 - diameter * 0.146, y: diameter * 0.146 - 10)
                     }
                 }

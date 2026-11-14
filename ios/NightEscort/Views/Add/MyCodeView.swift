@@ -25,7 +25,7 @@ struct MyCodeView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Backdrop(grouped: true, glow: false))
         .navigationTitle("我的二维码")
         .navigationBarTitleDisplayMode(.inline)
         .task { await create() }
@@ -61,7 +61,7 @@ struct MyCodeView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
     }
 
     private func actions(_ inv: Invite) -> some View {

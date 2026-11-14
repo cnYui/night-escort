@@ -35,6 +35,7 @@ struct LegalView: View {
                 .padding(20)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
+            .background(Backdrop(glow: false))
             .navigationTitle(doc.title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -298,7 +298,7 @@ struct ConfirmInviteView: View {
                     model.toast = tier == .standing ? "已和\(name)互相守护" : "今晚和\(name)临时互相守护"
                     dismiss()
                 } label: { Text("加为好友").font(.pf(.headline)).frame(maxWidth: .infinity) }
-                .glassProminentButton(tint: tier == .temporary ? Theme.temporary : Theme.accent)
+                .glassProminentButton(tint: tier == .temporary ? Theme.temporary : nil, ink: Theme.onTemporary)
                 .controlSize(.large)
 
                 Button { dismiss() } label: { Text("暂不").font(.pf(.body)).frame(maxWidth: .infinity) }
@@ -308,9 +308,9 @@ struct ConfirmInviteView: View {
             .padding(.horizontal, 20)
             .padding(.top, 10)
             .padding(.bottom, 8)
-            .background(Color(.systemGroupedBackground))
+            .background(Theme.grouped)
         }
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.grouped)
     }
 
     /// 下拉：选身份；最下面「新增身份」和「删除身份」（展开后点要删的那个）
@@ -360,7 +360,7 @@ struct ConfirmInviteView: View {
 
     private func group<C: View>(@ViewBuilder _ c: () -> C) -> some View {
         VStack(spacing: 0, content: c)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .background(Theme.card, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private func tierRow(_ t: InviteKind, title: String, detail: String) -> some View {
