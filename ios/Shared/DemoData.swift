@@ -9,6 +9,7 @@ import Foundation
  iPhone：login / home / start / active / sos / guarding / incident / me / myhome（设定家庭地址）/ pickplace（地图选点）/ pickplace-page（地图选点整页）
    / scan（点 + 的扫一扫，add 同）/ mycode（我的 › 我的二维码）/ invite / confirm（朋友的名片，加好友）/ confirm-login
  手表：signin / idle / running / paused / alerting / sos / sosfail / home / message
+ 配色候选：手机和手表都可以再加 `-palette a|b|c`（见 Shared/Palette.swift），全部截一遍用 scripts/palette-shots.sh
  */
 enum DemoMode {
     static var scene: String? {

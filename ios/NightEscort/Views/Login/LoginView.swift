@@ -76,7 +76,7 @@ struct LoginView: View {
                 TextField("手机号", text: $phone)
                     .keyboardType(.phonePad)
                     .textContentType(.telephoneNumber)
-                    .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
+                    .padding(.horizontal, 18).padding(.vertical, 14).background(Theme.field, in: Capsule())
 
                 if mode == .code {
                     HStack {
@@ -90,11 +90,11 @@ struct LoginView: View {
                         }
                         .disabled(cooldown > 0 || !agreed)
                     }
-                    .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
+                    .padding(.horizontal, 18).padding(.vertical, 14).background(Theme.field, in: Capsule())
                 } else {
                     SecureField("密码", text: $password)
                         .textContentType(.password)
-                        .padding(.horizontal, 18).padding(.vertical, 14).background(Color(.secondarySystemBackground), in: Capsule())
+                        .padding(.horizontal, 18).padding(.vertical, 14).background(Theme.field, in: Capsule())
                 }
 
                 agreement
@@ -144,7 +144,8 @@ struct LoginView: View {
                               let data = cred.identityToken, let token = String(data: data, encoding: .utf8) else { return }
                         Task { await run { try await model.api.loginWithApple(identityToken: token) } }
                     }
-                    .signInWithAppleButtonStyle(.black)
+                    // 深色底上用白色的 Apple 按钮，否则黑按钮看不出来
+                    .signInWithAppleButtonStyle(Theme.colorScheme == .dark ? .white : .black)
                     .frame(height: 52)
                     .clipShape(Capsule())
                     .disabled(!agreed)
@@ -154,6 +155,7 @@ struct LoginView: View {
             }
             .padding(20)
         }
+        .background(Backdrop())
     }
 
     private func sendCode() async throws {
@@ -206,9 +208,11 @@ struct SignupView: View {
             Section {
                 SecureField("至少 8 位，含字母和数字", text: $password).textContentType(.newPassword)
             } header: { Text("设置密码") } footer: { Text("每个账号都必须有密码，以后可以用手机号加密码登录。") }
+            .listRowBackground(Theme.rowBackground)
             Section {
                 TextField("别人图谱里看到的名字", text: $name)
             } header: { Text("昵称") }
+            .listRowBackground(Theme.rowBackground)
             Section {
                 AsyncButton {
                     let o = try await model.api.signup(ticket: ticket, password: password, displayName: name)
@@ -216,7 +220,9 @@ struct SignupView: View {
                 } label: { Text("完成").frame(maxWidth: .infinity) }
                 .disabled(password.count < 8 || name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
+            .listRowBackground(Theme.rowBackground)
         }
+        .themedList()
         .onAppear { if name.isEmpty, let s = suggestedName { name = s } }
     }
 }
@@ -243,13 +249,16 @@ struct BindPhoneView: View {
             } footer: {
                 Text("为了让每个守护你的人都对应一个真实的人，必须绑定手机号。号码不会被搜到；只有在你求救或联系不上时，这次守着你回家的人才能看到，方便直接给你打电话。")
             }
+            .listRowBackground(Theme.rowBackground)
             Section {
                 AsyncButton {
                     await onDone(try await model.api.bindPhone(ticket: ticket, phone: phone, code: code))
                 } label: { Text("绑定").frame(maxWidth: .infinity) }
                 .disabled(code.count != 6)
             }
+            .listRowBackground(Theme.rowBackground)
         }
+        .themedList()
     }
 }
 

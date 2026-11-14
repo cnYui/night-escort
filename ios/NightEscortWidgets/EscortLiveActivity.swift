@@ -30,11 +30,11 @@ struct EscortLiveActivity: Widget {
                 }
             } compactLeading: {
                 Image(systemName: ctx.state.status == "alerting" ? "exclamationmark.shield.fill" : "moon.stars.fill")
-                    .foregroundStyle(ctx.state.status == "alerting" ? .red : .blue)
+                    .foregroundStyle(ctx.state.status == "alerting" ? Color.red : Palette.current.accent)
             } compactTrailing: {
                 CountdownText(state: ctx.state).monospacedDigit().frame(maxWidth: 48)
             } minimal: {
-                Image(systemName: "moon.stars.fill").foregroundStyle(.blue)
+                Image(systemName: "moon.stars.fill").foregroundStyle(Palette.current.accent)
             }
         }
     }

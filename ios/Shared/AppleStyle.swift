@@ -1,7 +1,7 @@
 import SwiftUI
 
 // 手机、手表、小组件共用的视觉约定（2026-11-09 定）：
-// 苹果默认的白底 + 系统蓝；按钮一律用系统的液态玻璃（Liquid Glass）样式；字体一律苹方。
+// 按钮一律用系统的液态玻璃（Liquid Glass）样式；字体一律苹方。颜色见 Palette.swift。
 
 // MARK: - 苹方
 
@@ -68,19 +68,18 @@ extension Font {
 // MARK: - 液态玻璃按钮
 
 extension View {
-    /// 主要操作：系统的着色液态玻璃按钮（`.glassProminent`），默认系统蓝。
+    /// 主要操作：系统的着色液态玻璃按钮（`.glassProminent`）。
+    /// 不传 tint 就用当前配色的主按钮色和配套的字色；传了 tint（求救红、临时金）字默认白色，可以用 ink 改。
     /// 旧系统（iOS 26 / watchOS 26 之前）退回系统的胶囊实心按钮。
     @ViewBuilder
-    func glassProminentButton(tint: Color? = nil) -> some View {
-        #if compiler(>=6.2)
-        if #available(iOS 26.0, watchOS 26.0, *) {
-            self.buttonStyle(.glassProminent).tint(tint)
+    func glassProminentButton(tint: Color? = nil, ink: Color? = nil) -> some View {
+        let palette = Palette.current
+        if palette == .system {
+            self.systemProminentGlass().tint(tint ?? palette.primary)
         } else {
-            self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule).tint(tint)
+            self.buttonStyle(ProminentGlassStyle(ink: tint == nil ? palette.onPrimary : (ink ?? .white)))
+                .tint(tint ?? palette.primary)
         }
-        #else
-        self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule).tint(tint)
-        #endif
     }
 
     /// 次要操作：系统的透明液态玻璃按钮（`.glass`）。
@@ -109,5 +108,47 @@ extension View {
         #else
         self.background(.ultraThinMaterial, in: shape)
         #endif
+    }
+}
+
+// MARK: - 主按钮换字色
+
+private extension View {
+    /// 系统的着色液态玻璃按钮样式
+    @ViewBuilder
+    func systemProminentGlass() -> some View {
+        #if compiler(>=6.2)
+        if #available(iOS 26.0, watchOS 26.0, *) {
+            self.buttonStyle(.glassProminent)
+        } else {
+            self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+        }
+        #else
+        self.buttonStyle(.borderedProminent).buttonBorderShape(.capsule)
+        #endif
+    }
+}
+
+/// 还是系统的着色液态玻璃按钮，只是把按钮上的字换成指定颜色：
+/// 系统默认是白字，放在蜜桃金、薰衣草这种浅色底上看不清，要换成深紫。
+private struct ProminentGlassStyle: PrimitiveButtonStyle {
+    let ink: Color
+
+    func makeBody(configuration: Configuration) -> some View {
+        ProminentGlassBody(configuration: configuration, ink: ink)
+    }
+}
+
+private struct ProminentGlassBody: View {
+    let configuration: PrimitiveButtonStyleConfiguration
+    let ink: Color
+    @Environment(\.isEnabled) private var isEnabled
+
+    var body: some View {
+        Button(role: configuration.role, action: configuration.trigger) {
+            // 指定了颜色就不会跟着系统变灰，按钮不能点时自己调淡
+            configuration.label.foregroundStyle(ink.opacity(isEnabled ? 1 : 0.45))
+        }
+        .systemProminentGlass()
     }
 }
