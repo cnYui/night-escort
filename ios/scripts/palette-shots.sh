@@ -89,7 +89,7 @@ echo "== 1/4 iPhone：模拟器和编译"
 IOS_RT=$(latest_runtime iOS)
 PHONE_TYPE=$(device_type "$IOS_RT" "iPhone" "iPhone 17" "iPhone 17 Pro" "iPhone 16")
 PHONE=$(ensure_sim ne-palette-phone "$PHONE_TYPE" "$IOS_RT")
-echo "iPhone $PHONE（$PHONE_TYPE，$IOS_RT）"
+echo "iPhone ${PHONE}（${PHONE_TYPE}，${IOS_RT}）"
 xcrun simctl boot "$PHONE" 2>/dev/null || true
 xcrun simctl bootstatus "$PHONE" -b >/dev/null
 build NightEscort "$PHONE"
@@ -126,7 +126,7 @@ echo "== 3/4 手表：模拟器和编译"
 WATCH_RT=$(latest_runtime watchOS)
 WATCH_TYPE=$(device_type "$WATCH_RT" "46mm" "Apple Watch Series 12 (46mm)" "Apple Watch Series 11 (46mm)" "Apple Watch Series 10 (46mm)")
 WATCH=$(ensure_sim ne-palette-watch "$WATCH_TYPE" "$WATCH_RT")
-echo "手表 $WATCH（$WATCH_TYPE，$WATCH_RT）"
+echo "手表 ${WATCH}（${WATCH_TYPE}，${WATCH_RT}）"
 xcrun simctl boot "$WATCH" 2>/dev/null || true
 xcrun simctl bootstatus "$WATCH" -b >/dev/null
 build NightEscortWatch "$WATCH"
