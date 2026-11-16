@@ -65,22 +65,6 @@ for devs in json.load(sys.stdin)["devices"].values():
   echo "$id"
 }
 
-echo "== 1/4 模拟器"
-IOS_RT=$(latest_runtime iOS)
-WATCH_RT=$(latest_runtime watchOS)
-PHONE_TYPE=$(device_type "$IOS_RT" "iPhone" "iPhone 17" "iPhone 17 Pro" "iPhone 16")
-WATCH_TYPE=$(device_type "$WATCH_RT" "46mm" "Apple Watch Series 12 (46mm)" "Apple Watch Series 11 (46mm)" "Apple Watch Series 10 (46mm)")
-PHONE=$(ensure_sim ne-palette-phone "$PHONE_TYPE" "$IOS_RT")
-WATCH=$(ensure_sim ne-palette-watch "$WATCH_TYPE" "$WATCH_RT")
-echo "iPhone $PHONE（$PHONE_TYPE，$IOS_RT）"
-echo "手表   $WATCH（$WATCH_TYPE，$WATCH_RT）"
-xcrun simctl boot "$PHONE" 2>/dev/null || true
-xcrun simctl boot "$WATCH" 2>/dev/null || true
-xcrun simctl bootstatus "$PHONE" -b >/dev/null
-xcrun simctl bootstatus "$WATCH" -b >/dev/null
-
-echo "== 2/4 编译"
-xcodegen generate >/dev/null
 SIGN=(CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= PROVISIONING_PROFILE_SPECIFIER=)
 build() { # scheme 模拟器
   local log="$LOGS/build-$1.log" status=0
@@ -89,12 +73,6 @@ build() { # scheme 模拟器
   grep -E "error:|BUILD (SUCCEEDED|FAILED)" "$log" | sort -u | tail -40 || true
   [ "$status" = 0 ] || { echo "$1 编译失败，完整日志在 $log"; exit 1; }
 }
-build NightEscort "$PHONE"
-build NightEscortWatch "$WATCH"
-xcrun simctl install "$PHONE" "$DD/Build/Products/Debug-iphonesimulator/NightEscort.app"
-xcrun simctl install "$WATCH" "$DD/Build/Products/Debug-watchsimulator/NightEscortWatch.app"
-xcrun simctl privacy "$PHONE" grant location app.nightescort.ios || true
-xcrun simctl status_bar "$PHONE" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4 || true
 
 shot() { # 模拟器 包名 文件 等几秒 其余 = 启动参数
   local sim="$1" bundle="$2" file="$3" wait="$4"; shift 4
@@ -104,7 +82,22 @@ shot() { # 模拟器 包名 文件 等几秒 其余 = 启动参数
   xcrun simctl io "$sim" screenshot "$file" >/dev/null 2>&1
 }
 
-echo "== 3/4 iPhone 截图"
+xcodegen generate >/dev/null
+
+# 先把 iPhone 整个做完再做手表：手表那边出问题时，手机的图已经有了
+echo "== 1/4 iPhone：模拟器和编译"
+IOS_RT=$(latest_runtime iOS)
+PHONE_TYPE=$(device_type "$IOS_RT" "iPhone" "iPhone 17" "iPhone 17 Pro" "iPhone 16")
+PHONE=$(ensure_sim ne-palette-phone "$PHONE_TYPE" "$IOS_RT")
+echo "iPhone $PHONE（$PHONE_TYPE，$IOS_RT）"
+xcrun simctl boot "$PHONE" 2>/dev/null || true
+xcrun simctl bootstatus "$PHONE" -b >/dev/null
+build NightEscort "$PHONE"
+xcrun simctl install "$PHONE" "$DD/Build/Products/Debug-iphonesimulator/NightEscort.app"
+xcrun simctl privacy "$PHONE" grant location app.nightescort.ios || true
+xcrun simctl status_bar "$PHONE" override --time "9:41" --batteryState charged --batteryLevel 100 --wifiBars 3 --cellularBars 4 || true
+
+echo "== 2/4 iPhone 截图"
 # 每台模拟器第一次启动 App 比较慢，先空跑一次
 shot "$PHONE" app.nightescort.ios "$OUT/.warmup.png" 12 -demoScene home -locationNoteShown YES
 for p in $PALETTES; do
@@ -126,19 +119,28 @@ for p in $PALETTES; do
   done
 done
 xcrun simctl ui "$PHONE" appearance light || true
+rm -f "$OUT/.warmup.png"
+[ "${KEEP_SIM:-0}" = "1" ] || xcrun simctl shutdown "$PHONE" 2>/dev/null || true
+
+echo "== 3/4 手表：模拟器和编译"
+WATCH_RT=$(latest_runtime watchOS)
+WATCH_TYPE=$(device_type "$WATCH_RT" "46mm" "Apple Watch Series 12 (46mm)" "Apple Watch Series 11 (46mm)" "Apple Watch Series 10 (46mm)")
+WATCH=$(ensure_sim ne-palette-watch "$WATCH_TYPE" "$WATCH_RT")
+echo "手表 $WATCH（$WATCH_TYPE，$WATCH_RT）"
+xcrun simctl boot "$WATCH" 2>/dev/null || true
+xcrun simctl bootstatus "$WATCH" -b >/dev/null
+build NightEscortWatch "$WATCH"
+xcrun simctl install "$WATCH" "$DD/Build/Products/Debug-watchsimulator/NightEscortWatch.app"
 
 echo "== 4/4 手表截图"
 shot "$WATCH" app.nightescort.ios.watchkitapp "$OUT/.warmup.png" 12 -demoScene idle
 for p in $PALETTES; do
+  mkdir -p "$OUT/$p"
   for scene in signin idle running paused alerting sos home message; do
     shot "$WATCH" app.nightescort.ios.watchkitapp "$OUT/$p/watch-$scene.png" "$WAIT" -demoScene "$scene" -palette "$p"
     echo "  $p watch-$scene"
   done
 done
 rm -f "$OUT/.warmup.png"
-
-if [ "${KEEP_SIM:-0}" != "1" ]; then
-  xcrun simctl shutdown "$PHONE" 2>/dev/null || true
-  xcrun simctl shutdown "$WATCH" 2>/dev/null || true
-fi
+[ "${KEEP_SIM:-0}" = "1" ] || xcrun simctl shutdown "$WATCH" 2>/dev/null || true
 echo "截图在 $OUT"

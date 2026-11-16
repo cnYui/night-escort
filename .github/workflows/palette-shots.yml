@@ -1,0 +1,54 @@
+name: palette-shots
+# 薰衣草金配色候选的模拟器截图：家里的 Mac 连不上时，用 GitHub 的 Mac 跑同一个脚本（ios/scripts/palette-shots.sh），
+# 截图提交回分支的 design/screens/palette/。只在选配色这条分支上跑（2026-11-16 用户同意）；配色定下来后删掉这个文件。
+on:
+  push:
+    branches: ["claude/project-thread-sikcuc"]
+    paths: ["ios/**", ".github/workflows/palette-shots.yml"]
+permissions:
+  contents: write
+concurrency:
+  group: palette-shots-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  shots:
+    runs-on: macos-26
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - name: 选最新的正式版 Xcode
+        run: |
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_*.app | grep -vi beta | sort -V | tail -1)"
+          xcodebuild -version
+          xcrun simctl list runtimes
+      - run: brew install xcodegen
+      - name: 编译并截图
+        env:
+          DD: ${{ runner.temp }}/ne-palette/dd
+          WAIT: "8"
+        run: ios/scripts/palette-shots.sh "$RUNNER_TEMP/shots"
+      - name: 编译日志里的错误
+        if: failure()
+        run: grep -hE "error:|BUILD FAILED" "$RUNNER_TEMP"/ne-palette/logs/*.log | sort -u | head -80 || true
+      - name: 截图提交回分支
+        if: always()
+        run: |
+          cd "$RUNNER_TEMP/shots" 2>/dev/null || exit 0
+          ls */*.png >/dev/null 2>&1 || exit 0
+          DEST="$GITHUB_WORKSPACE/design/screens/palette"
+          rm -rf "$DEST"
+          for f in */*.png; do
+            mkdir -p "$DEST/$(dirname "$f")"
+            case "$f" in
+              # iPhone 截图转成 JPEG，仓库里少占地方；手表图本来就小，原样放
+              */iphone-*) sips -s format jpeg -s formatOptions 85 "$f" --out "$DEST/${f%.png}.jpg" >/dev/null ;;
+              *) cp "$f" "$DEST/$f" ;;
+            esac
+          done
+          cd "$GITHUB_WORKSPACE"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add design/screens/palette
+          git commit -q -m "配色候选的模拟器截图（${GITHUB_SHA::7}，GitHub 的 Mac）" || exit 0
+          git pull -q --rebase origin "$GITHUB_REF_NAME"
+          git push -q origin "HEAD:$GITHUB_REF_NAME"
