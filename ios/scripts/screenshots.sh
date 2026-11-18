@@ -72,11 +72,16 @@ build() { # scheme 模拟器
 }
 
 shot() { # 模拟器 包名 文件 等几秒 其余 = 启动参数
-  local sim="$1" bundle="$2" file="$3" wait="$4"; shift 4
+  local sim="$1" bundle="$2" file="$3" wait="$4" tries=0; shift 4
   xcrun simctl terminate "$sim" "$bundle" >/dev/null 2>&1 || true
   xcrun simctl launch "$sim" "$bundle" "$@" -AppleLanguages "(zh-Hans)" -AppleLocale zh_CN >/dev/null
   sleep "$wait"
   xcrun simctl io "$sim" screenshot "$file" >/dev/null 2>&1
+  # 截到的还是纯色启动屏（文件特别小）就再等等重截。手表页面本来就大片黑，只查手机
+  while [ "$bundle" = app.nightescort.ios ] && [ "$(stat -f%z "$file" 2>/dev/null || echo 0)" -lt 200000 ] && [ $tries -lt 4 ]; do
+    tries=$((tries + 1)); sleep 5
+    xcrun simctl io "$sim" screenshot "$file" >/dev/null 2>&1
+  done
 }
 
 xcodegen generate >/dev/null
@@ -103,7 +108,7 @@ for scene in login home start active sos guarding incident me; do
   wait=$WAIT; extra=()
   case "$scene" in
     login|incident) wait=$((WAIT + 5)) ;;
-    home|start) extra=(-homePick p-ak,p-mm) ;;
+    home|start) wait=$((WAIT + 5)); extra=(-homePick p-ak,p-mm) ;;
   esac
   shot "$PHONE" app.nightescort.ios "$OUT/iphone-$scene.png" "$wait" \
     -demoScene "$scene" -locationNoteShown YES ${extra[@]+"${extra[@]}"}
