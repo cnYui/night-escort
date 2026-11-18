@@ -1,116 +1,49 @@
 import EscortKit
 import SwiftUI
 
-/// 手机上的颜色。跟着当前配色走（见 Shared/Palette.swift），组件本身不变
+/// 手机上的颜色：夜色紫金。深紫底、主要页面两团光晕、主按钮蜜桃金、强调色薰衣草，整个 App 固定深色。
+/// 色值见 Shared/Palette.swift；组件本身还是系统的
 enum Theme {
-    private static let palette = Palette.current
-
     /// 强调色：链接、图标、进度条
-    static let accent = palette.accent
-    static let onAccent = palette.onAccent
+    static let accent = Palette.accent
+    static let onAccent = Palette.onAccent
     /// 今晚临时守护的人
-    static let temporary = palette.temporary
-    static let onTemporary = palette.onTemporary
+    static let temporary = Palette.temporary
+    static let onTemporary = Palette.onTemporary
     /// 求救和联系不上一直用系统红
     static let danger = Color.red
     static let muted = Color.secondary
 
     /// 首页气泡上「选中」的那一圈和小对勾
-    static let ring: Color = palette == .c ? Brand.gold : palette.accent
-    static let onRing: Color = palette == .c ? Brand.deepPurple : palette.onAccent
+    static let ring = Brand.gold
+    static let onRing = Brand.deepPurple
     /// 首页那句说明里怎么称呼这一圈
-    static let ringWord: String = {
-        switch palette {
-        case .system: return "蓝圈"
-        case .a, .b: return "紫圈"
-        case .c: return "金圈"
-        }
-    }()
+    static let ringWord = "金圈"
 
-    /// 别人的字母头像：默认是通讯录那种灰，B、C 换成薰衣草
-    static let monogram: Color = {
-        switch palette {
-        case .system, .a: return Color(red: 0.56, green: 0.58, blue: 0.62)
-        case .b, .c: return Brand.lavender
-        }
-    }()
-    static let onMonogram: Color = {
-        switch palette {
-        case .system, .a: return .white
-        case .b, .c: return Brand.deepPurple
-        }
-    }()
+    /// 别人的字母头像
+    static let monogram = Brand.lavender
+    static let onMonogram = Brand.deepPurple
     /// 首页中间自己的头像
-    static let me: Color = {
-        switch palette {
-        case .system, .a: return palette.accent
-        case .b, .c: return Brand.gold
-        }
-    }()
-    static let onMe: Color = {
-        switch palette {
-        case .system, .a: return palette.onAccent
-        case .b, .c: return Brand.deepPurple
-        }
-    }()
+    static let me = Brand.gold
+    static let onMe = Brand.deepPurple
 
     /// 普通页面的底
-    static let page: Color = {
-        switch palette {
-        case .system, .a: return Color(.systemBackground)
-        case .b: return Color(hex: 0xF6F2FC)
-        case .c: return Brand.base
-        }
-    }()
+    static let page = Brand.base
     /// 列表、表单页面的底
-    static let grouped: Color = {
-        switch palette {
-        case .system, .a: return Color(.systemGroupedBackground)
-        case .b: return Color(hex: 0xF1ECFA)
-        case .c: return Brand.base
-        }
-    }()
+    static let grouped = Brand.base
     /// 卡片、列表行的底
-    static let card: Color = {
-        switch palette {
-        case .system, .a: return Color(.secondarySystemGroupedBackground)
-        case .b: return .white
-        case .c: return Color(hex: 0x221B31)
-        }
-    }()
+    static let card = Color(hex: 0x221B31)
     /// 首页搜索栏的底
-    static let fill: Color = {
-        switch palette {
-        case .system, .a: return Color(.tertiarySystemFill)
-        case .b: return Brand.lavender.opacity(0.28)
-        case .c: return Color.white.opacity(0.10)
-        }
-    }()
+    static let fill = Color.white.opacity(0.10)
     /// 登录页输入框的底
-    static let field: Color = {
-        switch palette {
-        case .system, .a: return Color(.secondarySystemBackground)
-        case .b: return Brand.lavender.opacity(0.28)
-        case .c: return Color.white.opacity(0.10)
-        }
-    }()
-
-    /// B、C 换了底色；系统默认和 A 用系统自己的底，列表行不单独上色（保留点按高亮）
-    static let customSurfaces: Bool = palette == .b || palette == .c
-    static let rowBackground: Color? = customSurfaces ? card : nil
-    /// 只有 C 有光晕
-    static let glow: Bool = palette == .c
-    /// B 固定浅色，C 固定深色，其它跟随系统
-    static let colorScheme: ColorScheme? = {
-        switch palette {
-        case .system, .a: return nil
-        case .b: return .light
-        case .c: return .dark
-        }
-    }()
+    static let field = Color.white.opacity(0.10)
+    /// 列表行的底（配 `.listRowBackground`）
+    static let rowBackground = card
+    /// 整个 App 固定深色
+    static let colorScheme = ColorScheme.dark
 }
 
-/// 页面的底：纯色；C 配色的主要页面再加两团光晕
+/// 页面的底：深紫，主要页面再加两团光晕
 struct Backdrop: View {
     var grouped = false
     var glow = true
@@ -118,21 +51,16 @@ struct Backdrop: View {
     var body: some View {
         ZStack {
             grouped ? Theme.grouped : Theme.page
-            if glow && Theme.glow { BrandGlow(strength: 0.7) }
+            if glow { BrandGlow(strength: 0.7) }
         }
         .ignoresSafeArea()
     }
 }
 
 extension View {
-    /// 列表、表单换成当前配色的底（系统默认和 A 配色不动）。行的底色另外用 `.listRowBackground(Theme.rowBackground)`
-    @ViewBuilder
+    /// 列表、表单换成深紫底。行的底色另外用 `.listRowBackground(Theme.rowBackground)`
     func themedList(glow: Bool = false) -> some View {
-        if Theme.customSurfaces {
-            self.scrollContentBackground(.hidden).background(Backdrop(grouped: true, glow: glow))
-        } else {
-            self
-        }
+        self.scrollContentBackground(.hidden).background(Backdrop(grouped: true, glow: glow))
     }
 }
 

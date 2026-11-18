@@ -69,17 +69,11 @@ extension Font {
 
 extension View {
     /// 主要操作：系统的着色液态玻璃按钮（`.glassProminent`）。
-    /// 不传 tint 就用当前配色的主按钮色和配套的字色；传了 tint（求救红、临时金）字默认白色，可以用 ink 改。
+    /// 不传 tint 就用主按钮色（手机蜜桃金、手表薰衣草）配深紫字；传了 tint（求救红、临时金）字默认白色，可以用 ink 改。
     /// 旧系统（iOS 26 / watchOS 26 之前）退回系统的胶囊实心按钮。
-    @ViewBuilder
     func glassProminentButton(tint: Color? = nil, ink: Color? = nil) -> some View {
-        let palette = Palette.current
-        if palette == .system {
-            self.systemProminentGlass().tint(tint ?? palette.primary)
-        } else {
-            self.buttonStyle(ProminentGlassStyle(ink: tint == nil ? palette.onPrimary : (ink ?? .white)))
-                .tint(tint ?? palette.primary)
-        }
+        self.buttonStyle(ProminentGlassStyle(ink: tint == nil ? Palette.onPrimary : (ink ?? .white)))
+            .tint(tint ?? Palette.primary)
     }
 
     /// 次要操作：系统的透明液态玻璃按钮（`.glass`）。

@@ -1,15 +1,13 @@
 #!/bin/bash
-# 把几套配色在模拟器里各截一遍（iPhone + Apple Watch）。用调试包的演示模式，不连后端。
-# 配色见 ios/Shared/Palette.swift，启动参数 -palette a|b|c|system 切换。
+# 在模拟器里把 iPhone 和 Apple Watch 的主要页面各截一遍。用调试包的演示模式（-demoScene），不连后端。
 #
-# 用法：ios/scripts/palette-shots.sh [输出目录，默认 /tmp/ne-palette/shots]
+# 用法：ios/scripts/screenshots.sh [输出目录，默认 /tmp/ne-shots/shots]
 # 可选环境变量：
-#   PALETTES="a b c"       截哪几套
-#   DD=/tmp/ne-palette/dd  编译产物目录，留着下次增量编译
+#   DD=/tmp/ne-shots/dd    编译产物目录，留着下次增量编译
 #   PHONE_SCALE=603        iPhone 截图缩到这么宽（像素），0 = 不缩
 #   WAIT=5                 每个页面启动后等几秒再截（机器慢就调大）
 #   KEEP_SIM=1             跑完不关模拟器（下次更快）
-# 截图放在 <输出目录>/<配色>/iphone-<场景>.png 和 watch-<场景>.png。
+# 截图放在 <输出目录>/iphone-<场景>.png 和 watch-<场景>.png。
 set -euo pipefail
 SELF="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 # 跑的时候别让 Mac 睡着（笔记本合盖仍然会睡，要开着盖）
@@ -17,9 +15,8 @@ if [ -z "${NE_CAFFEINATED:-}" ] && command -v caffeinate >/dev/null; then
   export NE_CAFFEINATED=1
   exec caffeinate -dims "$SELF" "$@"
 fi
-OUT="${1:-/tmp/ne-palette/shots}"
-DD="${DD:-/tmp/ne-palette/dd}"
-PALETTES="${PALETTES:-a b c}"
+OUT="${1:-/tmp/ne-shots/shots}"
+DD="${DD:-/tmp/ne-shots/dd}"
 PHONE_SCALE="${PHONE_SCALE:-603}"
 WAIT="${WAIT:-5}"
 LOGS="$(dirname "$DD")/logs"
@@ -88,7 +85,7 @@ xcodegen generate >/dev/null
 echo "== 1/4 iPhone：模拟器和编译"
 IOS_RT=$(latest_runtime iOS)
 PHONE_TYPE=$(device_type "$IOS_RT" "iPhone" "iPhone 17" "iPhone 17 Pro" "iPhone 16")
-PHONE=$(ensure_sim ne-palette-phone "$PHONE_TYPE" "$IOS_RT")
+PHONE=$(ensure_sim ne-shots-phone "$PHONE_TYPE" "$IOS_RT")
 echo "iPhone ${PHONE}（${PHONE_TYPE}，${IOS_RT}）"
 xcrun simctl boot "$PHONE" 2>/dev/null || true
 xcrun simctl bootstatus "$PHONE" -b >/dev/null
@@ -99,33 +96,29 @@ xcrun simctl status_bar "$PHONE" override --time "9:41" --batteryState charged -
 
 echo "== 2/4 iPhone 截图"
 # 每台模拟器第一次启动 App 比较慢，先空跑一次
+# App 固定深色，系统也切到深色，半屏页和系统弹窗才一致
+xcrun simctl ui "$PHONE" appearance dark || true
 shot "$PHONE" app.nightescort.ios "$OUT/.warmup.png" 12 -demoScene home -locationNoteShown YES
-for p in $PALETTES; do
-  mkdir -p "$OUT/$p"
-  # C 配色自己固定深色，这里顺手把系统也切过去；其它按浅色截
-  xcrun simctl ui "$PHONE" appearance "$([ "$p" = c ] && echo dark || echo light)" || true
-  for scene in login home start active sos guarding incident me; do
-    wait=$WAIT; extra=()
-    case "$scene" in
-      login|incident) wait=$((WAIT + 5)) ;;
-      home|start) extra=(-homePick p-ak,p-mm) ;;
-    esac
-    shot "$PHONE" app.nightescort.ios "$OUT/$p/iphone-$scene.png" "$wait" \
-      -demoScene "$scene" -palette "$p" -locationNoteShown YES ${extra[@]+"${extra[@]}"}
-    if [ "$PHONE_SCALE" != 0 ]; then
-      sips --resampleWidth "$PHONE_SCALE" "$OUT/$p/iphone-$scene.png" >/dev/null 2>&1 || true
-    fi
-    echo "  $p iphone-$scene"
-  done
+for scene in login home start active sos guarding incident me; do
+  wait=$WAIT; extra=()
+  case "$scene" in
+    login|incident) wait=$((WAIT + 5)) ;;
+    home|start) extra=(-homePick p-ak,p-mm) ;;
+  esac
+  shot "$PHONE" app.nightescort.ios "$OUT/iphone-$scene.png" "$wait" \
+    -demoScene "$scene" -locationNoteShown YES ${extra[@]+"${extra[@]}"}
+  if [ "$PHONE_SCALE" != 0 ]; then
+    sips --resampleWidth "$PHONE_SCALE" "$OUT/iphone-$scene.png" >/dev/null 2>&1 || true
+  fi
+  echo "  iphone-$scene"
 done
-xcrun simctl ui "$PHONE" appearance light || true
 rm -f "$OUT/.warmup.png"
 [ "${KEEP_SIM:-0}" = "1" ] || xcrun simctl shutdown "$PHONE" 2>/dev/null || true
 
 echo "== 3/4 手表：模拟器和编译"
 WATCH_RT=$(latest_runtime watchOS)
 WATCH_TYPE=$(device_type "$WATCH_RT" "46mm" "Apple Watch Series 12 (46mm)" "Apple Watch Series 11 (46mm)" "Apple Watch Series 10 (46mm)")
-WATCH=$(ensure_sim ne-palette-watch "$WATCH_TYPE" "$WATCH_RT")
+WATCH=$(ensure_sim ne-shots-watch "$WATCH_TYPE" "$WATCH_RT")
 echo "手表 ${WATCH}（${WATCH_TYPE}，${WATCH_RT}）"
 xcrun simctl boot "$WATCH" 2>/dev/null || true
 xcrun simctl bootstatus "$WATCH" -b >/dev/null
@@ -134,12 +127,9 @@ xcrun simctl install "$WATCH" "$DD/Build/Products/Debug-watchsimulator/NightEsco
 
 echo "== 4/4 手表截图"
 shot "$WATCH" app.nightescort.ios.watchkitapp "$OUT/.warmup.png" 12 -demoScene idle
-for p in $PALETTES; do
-  mkdir -p "$OUT/$p"
-  for scene in signin idle running paused alerting sos home message; do
-    shot "$WATCH" app.nightescort.ios.watchkitapp "$OUT/$p/watch-$scene.png" "$WAIT" -demoScene "$scene" -palette "$p"
-    echo "  $p watch-$scene"
-  done
+for scene in signin idle running paused alerting sos home message; do
+  shot "$WATCH" app.nightescort.ios.watchkitapp "$OUT/watch-$scene.png" "$WAIT" -demoScene "$scene"
+  echo "  watch-$scene"
 done
 rm -f "$OUT/.warmup.png"
 [ "${KEEP_SIM:-0}" = "1" ] || xcrun simctl shutdown "$WATCH" 2>/dev/null || true

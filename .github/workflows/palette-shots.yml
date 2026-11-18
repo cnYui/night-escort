@@ -1,6 +1,6 @@
 name: palette-shots
-# 薰衣草金配色候选的模拟器截图：家里的 Mac 连不上时，用 GitHub 的 Mac 跑同一个脚本（ios/scripts/palette-shots.sh），
-# 截图提交回分支的 design/screens/palette/。只在选配色这条分支上跑（2026-11-16 用户同意）；配色定下来后删掉这个文件。
+# 薰衣草金配色的模拟器截图：家里的 Mac 连不上时，用 GitHub 的 Mac 跑同一个脚本（ios/scripts/screenshots.sh），
+# 截图提交回分支的 design/screens/app/。只在选配色这条分支上跑（2026-11-16 用户同意）；定稿截图出来后删掉这个文件。
 on:
   push:
     branches: ["claude/project-thread-sikcuc"]
@@ -24,31 +24,30 @@ jobs:
       - run: brew install xcodegen
       - name: 编译并截图
         env:
-          DD: ${{ runner.temp }}/ne-palette/dd
+          DD: ${{ runner.temp }}/ne-shots/dd
           WAIT: "8"
-        run: ios/scripts/palette-shots.sh "$RUNNER_TEMP/shots"
+        run: ios/scripts/screenshots.sh "$RUNNER_TEMP/shots"
       - name: 编译日志里的错误
         if: failure()
-        run: grep -hE "error:|BUILD FAILED" "$RUNNER_TEMP"/ne-palette/logs/*.log | sort -u | head -80 || true
+        run: grep -hE "error:|BUILD FAILED" "$RUNNER_TEMP"/ne-shots/logs/*.log | sort -u | head -80 || true
       - name: 截图提交回分支
         if: always()
         run: |
           cd "$RUNNER_TEMP/shots" 2>/dev/null || exit 0
-          ls */*.png >/dev/null 2>&1 || exit 0
-          DEST="$GITHUB_WORKSPACE/design/screens/palette"
-          rm -rf "$DEST"
-          for f in */*.png; do
-            mkdir -p "$DEST/$(dirname "$f")"
+          ls *.png >/dev/null 2>&1 || exit 0
+          DEST="$GITHUB_WORKSPACE/design/screens/app"
+          rm -rf "$DEST" && mkdir -p "$DEST"
+          for f in *.png; do
             case "$f" in
               # iPhone 截图转成 JPEG，仓库里少占地方；手表图本来就小，原样放
-              */iphone-*) sips -s format jpeg -s formatOptions 85 "$f" --out "$DEST/${f%.png}.jpg" >/dev/null ;;
+              iphone-*) sips -s format jpeg -s formatOptions 85 "$f" --out "$DEST/${f%.png}.jpg" >/dev/null ;;
               *) cp "$f" "$DEST/$f" ;;
             esac
           done
           cd "$GITHUB_WORKSPACE"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add design/screens/palette
-          git commit -q -m "配色候选的模拟器截图（${GITHUB_SHA::7}，GitHub 的 Mac）" || exit 0
+          git add design/screens/app
+          git commit -q -m "定稿配色的模拟器截图（${GITHUB_SHA::7}，GitHub 的 Mac）" || exit 0
           git pull -q --rebase origin "$GITHUB_REF_NAME"
           git push -q origin "HEAD:$GITHUB_REF_NAME"

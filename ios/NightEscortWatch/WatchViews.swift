@@ -2,82 +2,29 @@ import EscortKit
 import SwiftUI
 import WatchKit
 
-// MARK: - 主题：颜色跟着当前配色走（见 Shared/Palette.swift）；按钮用系统液态玻璃；字体苹方
+// MARK: - 主题：watchOS 默认的黑底 + 薰衣草（色值见 Shared/Palette.swift）；按钮用系统液态玻璃；字体苹方
 
 enum WTheme {
-    private static let palette = Palette.current
-
-    /// 强调色。手表 App 没有全局强调色，主按钮的颜色由 glassProminentButton 显式给，否则 watchOS 画成灰色
-    static let accent = palette.accent
-    /// 左上角小标签的颜色：C 配色和最早那版手表一样用蜜桃金
-    static let label: Color = palette == .c ? Brand.gold : palette.accent
-    /// 图标：B 用蜜桃金，C 用蜜桃金到薰衣草的渐变（最早那版手表的图标就是这个渐变）
-    static let icon: AnyShapeStyle = {
-        switch palette {
-        case .system, .a: return AnyShapeStyle(palette.accent)
-        case .b: return AnyShapeStyle(Brand.gold)
-        case .c: return AnyShapeStyle(LinearGradient(colors: [Brand.gold, Brand.lavender], startPoint: .topLeading, endPoint: .bottomTrailing))
-        }
-    }()
-    /// 进度条
-    static let progress: Color = palette == .b ? Brand.gold : palette.accent
-    static let ink: Color = {
-        switch palette {
-        case .system, .a: return .white
-        case .b, .c: return Brand.cream
-        }
-    }()
-    static let sub: Color = {
-        switch palette {
-        case .system, .a: return .secondary
-        case .b, .c: return Brand.cream.opacity(0.72)
-        }
-    }()
+    /// 强调色：薰衣草。手表 App 没有全局强调色，要显式给；主按钮由 glassProminentButton 自己上色
+    static let accent = Palette.accent
+    static let ink = Color.white
+    static let sub = Color.secondary
     /// 求救和超时专用的红
-    static let danger: Color = {
-        switch palette {
-        case .system, .a: return .red
-        case .b, .c: return Brand.rose
-        }
-    }()
-    /// 小卡片的底：默认是 watchOS 的灰，深紫底上用半透明白
-    static let platter: Color = {
-        switch palette {
-        case .system, .a: return Color(white: 0.11)
-        case .b, .c: return Color.white.opacity(0.10)
-        }
-    }()
-}
-
-/// 整屏的底：默认是 watchOS 的黑底；B 是深紫底；C 是深紫底加蜜桃金、薰衣草两团光晕
-struct WBackdrop: View {
-    var body: some View {
-        switch Palette.current {
-        case .system, .a:
-            Color.clear
-        case .b:
-            Brand.base.ignoresSafeArea()
-        case .c:
-            ZStack {
-                Brand.base
-                BrandGlow()
-            }
-            .ignoresSafeArea()
-        }
-    }
+    static let danger = Color.red
+    /// watchOS 默认的灰色卡片底
+    static let platter = Color(white: 0.11)
 }
 
 /// 屏幕上方的系统图标（SF Symbols）
 struct WIcon: View {
     let systemName: String
     var size: CGFloat = 34
-    /// 不传就用当前配色的图标颜色
-    var color: Color? = nil
+    var color: Color = WTheme.accent
     var body: some View {
         Image(systemName: systemName)
             .font(.system(size: size, weight: .medium))
             .symbolRenderingMode(.hierarchical)
-            .foregroundStyle(color.map { AnyShapeStyle($0) } ?? WTheme.icon)
+            .foregroundStyle(color)
             .frame(height: size + 4)
             .accessibilityHidden(true)
     }
@@ -86,7 +33,7 @@ struct WIcon: View {
 /// 左上角的小标签
 struct WLabel: View {
     let text: String
-    var color: Color = WTheme.label
+    var color: Color = WTheme.accent
     var dot = false
     var body: some View {
         HStack(spacing: 4) {
@@ -99,10 +46,10 @@ struct WLabel: View {
 /// 页头：左边小标签，右边图标，放一行，省出高度让主按钮第一屏就能看全
 struct WHeader: View {
     let text: String
-    var color: Color = WTheme.label
+    var color: Color = WTheme.accent
     var dot = false
     let systemName: String
-    var iconColor: Color? = nil
+    var iconColor: Color = WTheme.accent
     var body: some View {
         HStack(alignment: .center) {
             WLabel(text: text, color: color, dot: dot)
@@ -158,7 +105,6 @@ struct WatchRootView: View {
             }
         }
         .font(.pf(.body))
-        .background(WBackdrop())
         .task { await model.refresh() }
         .sheet(item: Binding(get: { model.askHome.map(HomeAsk.init) }, set: { if $0 == nil { model.askHome = nil } })) { ask in
             HomeAskView(place: ask.place).environmentObject(model)
@@ -314,7 +260,7 @@ struct EscortRunningView: View {
                             WIcon(systemName: "figure.walk", size: 30)
                         }
                         ProgressView(value: progress(now: ctx.date))
-                            .tint(WTheme.progress)
+                            .tint(WTheme.accent)
                             .accessibilityHidden(true)
                     }
                 }
@@ -461,7 +407,6 @@ struct HomeAskView: View {
             }
             .wPage()
         }
-        .background(WBackdrop())
         .font(.pf(.body))
     }
 }
@@ -496,7 +441,6 @@ struct MessageView: View {
             }
             .wPage()
         }
-        .background(WBackdrop())
         .font(.pf(.body))
     }
 }

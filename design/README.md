@@ -2,37 +2,38 @@
 
 App 名：**安全回家**（工程、Bundle ID 仍叫 NightEscort）。口号：回家路上，有人一直在。
 
-![手表 · 当前配色](screens/watch-current-theme.png)
+<img src="screens/app/iphone-home.jpg" width="260" alt="iPhone 首页"> <img src="screens/app/watch-idle.png" width="208" alt="手表待机">
 
 ## 文件
 
 | 文件 | 内容 |
 | --- | --- |
 | `AppIcon.svg` | App 图标矢量源文件：定位针里挖一弯月亮 |
-| `screens/watch-current-theme.png` | 手表 7 个界面，当前代码里用的配色（蜜桃薰衣草 · 深） |
+| `screens/app/` | 现在代码的样子：iPhone 和手表各 8 个页面的模拟器截图（`ios/scripts/screenshots.sh` 截的） |
+| `screens/watch-current-theme.png` | 最早那版手表设计（蜜桃薰衣草 · 深），现在的配色就取自它 |
 | `screens/watch-all-themes.png` | 同一套布局的 4 套备选配色 |
 | `screens/app-icon-options.png` | 图标备选方案（最终选了 ③ 夜间定位） |
 | `watch-icons/*.svg` | 手表立体图标的矢量源文件，导出的 PNG 在 `ios/NightEscortWatch/Assets.xcassets` |
 
-## 颜色
+## 颜色（2026-11-18 定稿）
+
+手机用「夜色紫金」：深紫底，主要页面左上蜜桃金、右下薰衣草两团光晕，主按钮蜜桃金，整个 App 固定深色。手表用「黑底薰衣草」：watchOS 默认的黑底，主按钮和强调色换成薰衣草。按钮、列表、图标、字体都还是苹果原生的，只换颜色。
 
 | 名字 | 色值 | 用在哪 |
 | --- | --- | --- |
-| 底色 | `#15111F` | 手表背景 |
-| 蜜桃 | `#FFDAB9` | 品牌渐变起点、左上光晕、强调文字 |
-| 薰衣草 | `#C7B8EA` | 品牌渐变终点、右下光晕 |
-| 品牌渐变 | `#FFDAB9 → #C7B8EA` | 主按钮、进度条、超时整屏背景 |
-| 深紫 | `#2A1F3D` | 主按钮上的字 |
-| 正文 | `#FFF7F0`（次要文字 72% 不透明） | 手表上的文字 |
-| 手机主题色 | `#6B47BF` | iPhone 上的按钮、链接、高亮（`Theme.accent`） |
-| 求救红 | 手机 `Theme.danger`，手表 `#FF6B7D` | 只用在 SOS 按钮和联系不上 |
-| App 图标底 | `#2B2148 → #0E0B18` | 图标深紫渐变底，图形用品牌渐变 |
+| 深紫底 | `#15111F` | 手机页面和列表的底 |
+| 卡片 | `#221B31` | 手机列表行、卡片 |
+| 蜜桃金 | `#FFDAB9` | 手机主按钮、首页自己的头像、选中的金圈、今晚临时守护；左上光晕 |
+| 薰衣草 | `#C7B8EA` | 强调色（链接、图标、进度条）、别人的字母头像、手表主按钮；右下光晕 |
+| 深紫字 | `#2A1F3D` | 金色、薰衣草底上的字 |
+| 求救红 | 系统红 | 只用在 SOS 和联系不上 |
+| App 图标底 | `#2B2148 → #0E0B18` | 图标深紫渐变底，图形用蜜桃到薰衣草的渐变 |
 
-代码里对应：手表 `WTheme`（`NightEscortWatch/WatchViews.swift`），手机 `Theme`（`NightEscort/Views/Common/Components.swift`）。
+代码里对应：色值在 `ios/Shared/Palette.swift`（`Brand`、`Palette`），手机 `Theme`（`NightEscort/Views/Common/Components.swift`），手表 `WTheme`（`NightEscortWatch/WatchViews.swift`）。小组件和灵动岛跟手机一样。
 
 ## 字体
 
-全部用系统圆体（SF Pro Rounded，代码里 `.fontDesign(.rounded)`），标题和数字用 heavy / 800，说明文字 semibold / 600。中文由系统落到苹方。
+全部用苹方（PingFang SC），代码里是 `.font(.pf(...))`，不用圆体。
 
 ## 手表界面（7 个）
 
@@ -42,11 +43,11 @@ App 名：**安全回家**（工程、Bundle ID 仍叫 NightEscort）。口号�
 2. 待机：月亮，「今晚平安到家」+ 长按开始 + 长按 2 秒求救
 3. 护航中：倒计时 + 走路小人 + 进度条 + 两个数据块 + 我没事 / 到了，结束 / 结束护航 / 求救
 4. 已暂停：暂停图标，「暂停到明早 HH:mm」+ 结束护航
-5. 超时 / 求救：整屏品牌渐变，铃铛，「担保人正在联系你」+ 我没事
+5. 超时 / 求救：红色小标签和铃铛，「担保人正在联系你」+ 红色的我没事
 6. 到家确认：小房子，「检测到你已经到家」+ 到了，结束护航 / 还没，继续
 7. 提示：对话气泡 + 一句话 + 好
 
-按钮三种：主要操作用品牌渐变实心；次要操作用毛玻璃（白 14% + 白描边）；超时屏反过来用深色实心。
+按钮都是系统的液态玻璃：主要操作是薰衣草着色的 `.glassProminent`（深紫字），次要操作是透明的 `.glass`，求救和超时用系统红。
 
 ## 求救（SOS）
 

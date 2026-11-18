@@ -145,7 +145,7 @@ struct LoginView: View {
                         Task { await run { try await model.api.loginWithApple(identityToken: token) } }
                     }
                     // 深色底上用白色的 Apple 按钮，否则黑按钮看不出来
-                    .signInWithAppleButtonStyle(Theme.colorScheme == .dark ? .white : .black)
+                    .signInWithAppleButtonStyle(.white)
                     .frame(height: 52)
                     .clipShape(Capsule())
                     .disabled(!agreed)
