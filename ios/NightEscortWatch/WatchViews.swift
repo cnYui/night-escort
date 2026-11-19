@@ -2,11 +2,11 @@ import EscortKit
 import SwiftUI
 import WatchKit
 
-// MARK: - 主题：watchOS 默认的黑底 + 系统蓝；按钮用系统液态玻璃；字体苹方
+// MARK: - 主题：watchOS 默认的黑底 + 薰衣草（色值见 Shared/Palette.swift）；按钮用系统液态玻璃；字体苹方
 
 enum WTheme {
-    /// 手表 App 没有全局强调色，主按钮要显式传系统蓝，否则 watchOS 画成灰色
-    static let accent = Color.blue
+    /// 强调色：薰衣草。手表 App 没有全局强调色，要显式给；主按钮由 glassProminentButton 自己上色
+    static let accent = Palette.accent
     static let ink = Color.white
     static let sub = Color.secondary
     /// 求救和超时专用的红
@@ -167,7 +167,7 @@ struct IdleView: View {
                     .font(.pf(size: 16, weight: .semibold))
                     .frame(maxWidth: .infinity)
                 }
-                .glassProminentButton(tint: WTheme.accent)
+                .glassProminentButton()
                 .simultaneousGesture(LongPressGesture(minimumDuration: 1).onEnded { _ in
                     Task { await model.start() }
                 })
@@ -265,7 +265,7 @@ struct EscortRunningView: View {
                     }
                 }
                 Button { Task { await model.checkin() } } label: { Text("我没事").wButton() }
-                    .glassProminentButton(tint: WTheme.accent)
+                    .glassProminentButton()
                     .disabled(model.busy)
                     .padding(.top, 2)
                 Button { Task { await model.checkin(.arrived) } } label: { Text("到了，结束").wButton() }
@@ -400,7 +400,7 @@ struct HomeAskView: View {
                 Text("检测到你\n已经到\(place)").wTitle()
                 Text("安全到家了吗？").wSub()
                 Button { Task { await model.answerHome(arrived: true) } } label: { Text("到了，结束护航").wButton() }
-                    .glassProminentButton(tint: WTheme.accent)
+                    .glassProminentButton()
                     .padding(.top, 4)
                 Button { Task { await model.answerHome(arrived: false) } } label: { Text("还没，继续").wButton() }
                     .glassButton()

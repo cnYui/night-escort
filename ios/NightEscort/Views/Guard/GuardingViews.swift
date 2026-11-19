@@ -9,6 +9,7 @@ struct GuardingView: View {
     var body: some View {
         NavigationStack {
             List {
+                Group {
                 if model.cards.isEmpty {
                     ContentUnavailableView("现在没人需要你守护", systemImage: "moon.zzz", description: Text("朋友回家时选了你，她就会出现在这里。"))
                 }
@@ -27,7 +28,10 @@ struct GuardingView: View {
                         Text("这里是你在守护的人，不是守护你的人。她们出事或联系不上时，你会马上收到提醒。守护你的人在「回家」页。")
                     }
                 }
+                }
+                .listRowBackground(Theme.rowBackground)
             }
+            .themedList(glow: true)
             .navigationTitle("我守护的人")
             .refreshable { await model.refreshGuarding() }
             .task { await model.refreshGuarding() }
@@ -41,7 +45,8 @@ struct GuardCardRow: View {
         TimelineView(.periodic(from: .now, by: 30)) { ctx in
             HStack(spacing: 12) {
                 AvatarView(name: card.owner.displayName, url: card.owner.avatarUrl, size: 44,
-                           tint: card.status == .alerting ? Theme.danger : Theme.monogram)
+                           tint: card.status == .alerting ? Theme.danger : Theme.monogram,
+                           ink: card.status == .alerting ? .white : Theme.onMonogram)
                 VStack(alignment: .leading, spacing: 3) {
                     HStack { Text(card.owner.displayName).font(.pf(.headline)); TierBadge(tier: card.myTier) }
                     Text(Display.guardianLine(card, now: ctx.date))
@@ -114,6 +119,7 @@ struct GuardDetailView: View {
             }
             .padding()
         }
+        .background(Backdrop(glow: false))
         .navigationTitle(card.owner.displayName)
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { if card.canViewLocation { realtime.subscribe(ownerId: card.owner.id, api: model.api) } }
@@ -204,7 +210,7 @@ struct IncidentAlertView: View {
         .padding(.horizontal, 20)
         .padding(.bottom, 12)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemBackground))
+        .background(Backdrop())
         .sheet(isPresented: $confirming) {
             ConfirmSafeSheet(incident: incident)
                 .environmentObject(model)
@@ -245,6 +251,7 @@ struct ConfirmSafeSheet: View {
     var body: some View {
         NavigationStack {
             Form {
+                Group {
                 Section("怎么确认的") {
                     Picker("方式", selection: $via) {
                         ForEach(ConfirmVia.allCases, id: \.self) { Text($0.label).tag($0) }
@@ -263,7 +270,10 @@ struct ConfirmSafeSheet: View {
                         Text("今晚临时守护的人只能确认安全，不能暂停或结束她这次回家。")
                     }
                 }
+                }
+                .listRowBackground(Theme.rowBackground)
             }
+            .themedList()
             .navigationTitle("已联系上")
             .navigationBarTitleDisplayMode(.inline)
         }

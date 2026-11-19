@@ -26,10 +26,14 @@ struct SearchView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section("常驻") { rows(results.filter { $0.guardsMe?.tier == .standing }) }
-                Section("临时") { rows(results.filter { $0.guardsMe?.tier == .temporary }) }
-                Section("仅连接") { rows(results.filter { $0.guardsMe == nil }) }
+                Group {
+                    Section("常驻") { rows(results.filter { $0.guardsMe?.tier == .standing }) }
+                    Section("临时") { rows(results.filter { $0.guardsMe?.tier == .temporary }) }
+                    Section("仅连接") { rows(results.filter { $0.guardsMe == nil }) }
+                }
+                .listRowBackground(Theme.rowBackground)
             }
+            .themedList()
             .searchable(text: $q, placement: .navigationBarDrawer(displayMode: .always), prompt: "名字、拼音首字母或关系")
             .navigationTitle("联系人")
             .navigationBarTitleDisplayMode(.inline)
@@ -71,6 +75,7 @@ struct ContactCard: View {
     var body: some View {
         NavigationStack {
             List {
+                Group {
                 Section {
                     HStack(spacing: 14) {
                         AvatarView(name: connection.shownName, url: connection.peer.avatarUrl, size: 56)
@@ -124,7 +129,10 @@ struct ContactCard: View {
                 } footer: {
                     Text("解除后双方的守护一起作废，两边图谱都会移除。")
                 }
+                }
+                .listRowBackground(Theme.rowBackground)
             }
+            .themedList()
             .navigationTitle("联系人")
             .navigationBarTitleDisplayMode(.inline)
             .sheet(isPresented: $changingToTemporary) {
@@ -160,6 +168,7 @@ struct TemporaryPermissionForm: View {
 
     var body: some View {
         Form {
+            Group {
             Section("什么时候失效") {
                 Picker("失效", selection: $template.expires) {
                     ForEach(TempExpiry.allCases, id: \.self) { Text($0.label).tag($0) }
@@ -188,7 +197,10 @@ struct TemporaryPermissionForm: View {
                     .font(.pf(.footnote))
                     .foregroundStyle(.secondary)
             }
+            }
+            .listRowBackground(Theme.rowBackground)
         }
+        .themedList()
         .navigationTitle("今晚临时一起的人")
         .navigationBarTitleDisplayMode(.inline)
     }

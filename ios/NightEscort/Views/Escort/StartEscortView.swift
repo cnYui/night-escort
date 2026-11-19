@@ -29,6 +29,7 @@ struct StartEscortView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Group {
                 if let o = options, !preselected.isEmpty {
                     // 人已经在首页气泡里选好了，这里不再重复列；只把可能收不到通知的人提出来
                     let warned = o.candidates.filter { chosen.contains($0.id) && $0.readiness?.warning != nil }
@@ -114,7 +115,10 @@ struct StartEscortView: View {
                 } else {
                     ProgressView()
                 }
+                }
+                .listRowBackground(Theme.rowBackground)
             }
+            .themedList()
             .navigationTitle("我要回家了")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -132,7 +136,7 @@ struct StartEscortView: View {
                 .padding(.horizontal)
                 .padding(.vertical, 10)
                 // 底色和列表一致：列表滚到按钮后面时文字不会和按钮叠在一起
-                .background(Color(.systemGroupedBackground))
+                .background(Theme.grouped)
             }
             .task { await load() }
             .onAppear { homePlaces = HomePlaceStore.load() }
@@ -245,12 +249,16 @@ struct PlacePicker: View {
                     }
                 }
                 Form {
-                    TextField("名字，比如 家、宿舍、朋友家", text: $name)
-                    Picker("范围", selection: $radius) {
-                        ForEach(HomePlace.radiusOptions, id: \.self) { Text("\(Int($0)) 米").tag($0) }
+                    Group {
+                        TextField("名字，比如 家、宿舍、朋友家", text: $name)
+                        Picker("范围", selection: $radius) {
+                            ForEach(HomePlace.radiusOptions, id: \.self) { Text("\(Int($0)) 米").tag($0) }
+                        }
+                        .pickerStyle(.segmented)
                     }
-                    .pickerStyle(.segmented)
+                    .listRowBackground(Theme.rowBackground)
                 }
+                .themedList()
                 .frame(height: 170)
             }
             .navigationTitle(title)

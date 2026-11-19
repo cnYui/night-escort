@@ -28,6 +28,8 @@ struct RootView: View {
             }
         }
         .tint(Theme.accent)
+        // 整个 App 固定深色
+        .preferredColorScheme(Theme.colorScheme)
         // 担保人：联系不上的常驻框，结果出来前关不掉
         .fullScreenCover(item: $model.alertIncident) { inc in
             IncidentAlertView(incident: inc)

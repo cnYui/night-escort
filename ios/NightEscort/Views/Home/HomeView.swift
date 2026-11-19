@@ -45,7 +45,7 @@ struct HomeView: View {
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .background(Color(.tertiarySystemFill), in: Capsule())
+                    .background(Theme.fill, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .padding(.horizontal)
@@ -56,7 +56,7 @@ struct HomeView: View {
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("谁在守护我").font(.pf(.title3, weight: .semibold))
-                    Text(escortOpen ? "蓝圈的人正在守着你回家。" : "点气泡选这次守着你的人，长按看详情。越久没一起回家，气泡越小。")
+                    Text(escortOpen ? "\(Theme.ringWord)的人正在守着你回家。" : "点气泡选这次守着你的人，长按看详情。越久没一起回家，气泡越小。")
                         .font(.pf(.footnote)).foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -93,7 +93,7 @@ struct HomeView: View {
                     .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-            .background(Color(.systemBackground))
+            .background(Backdrop())
             .toolbar(.hidden, for: .navigationBar)
             #if DEBUG
             .onAppear {
@@ -116,7 +116,7 @@ struct HomeView: View {
                 // 人已经在气泡里选好了，开始页只剩间隔和目的地，半屏就够
                 StartEscortView(preselected: picked).environmentObject(model)
                     .presentationDetents(picked.isEmpty ? [.large] : [.medium, .large])
-                    .presentationBackground(Color(.systemGroupedBackground))
+                    .presentationBackground(Theme.grouped)
             }
             .onChange(of: escortOpen) { _, open in if open { picked = [] } }
             .animation(.spring(duration: 0.35), value: picked.isEmpty)
@@ -221,7 +221,7 @@ struct ActiveEscortPanel: View {
             }
         }
         .padding(20)
-        .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .background(Theme.card, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .padding(.horizontal)
         .padding(.bottom, 8)
     }

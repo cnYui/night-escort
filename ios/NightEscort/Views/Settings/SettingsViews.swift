@@ -25,6 +25,7 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             List {
+                Group {
                 Section {
                     HStack(spacing: 14) {
                         // 点头像换：从相册选，或去掉回到名字首字
@@ -75,7 +76,10 @@ struct SettingsView: View {
                     Button("退出登录") { Task { await model.signOut() } }
                     Button("删除账号", role: .destructive) { confirmDelete = true }
                 }
+                }
+                .listRowBackground(Theme.rowBackground)
             }
+            .themedList(glow: true)
             .navigationTitle("我的")
             .photosPicker(isPresented: $pickingAvatar, selection: $avatarItem, matching: .images)
             .onChange(of: avatarItem) { _, item in
@@ -107,10 +111,10 @@ struct SettingsView: View {
             .overlay(alignment: .bottomTrailing) {
                 Image(systemName: "camera.fill")
                     .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.onAccent)
                     .frame(width: 22, height: 22)
                     .background(Theme.accent, in: Circle())
-                    .overlay(Circle().stroke(Color(.secondarySystemGroupedBackground), lineWidth: 2))
+                    .overlay(Circle().stroke(Theme.card, lineWidth: 2))
             }
     }
 
@@ -166,6 +170,7 @@ struct WhoCanSeeMeView: View {
 
     var body: some View {
         List {
+            Group {
             if let d = data {
                 Section {
                     Text(d.headline).font(.pf(.headline))
@@ -203,7 +208,10 @@ struct WhoCanSeeMeView: View {
             } else {
                 ProgressView()
             }
+            }
+            .listRowBackground(Theme.rowBackground)
         }
+        .themedList()
         .navigationTitle("谁能看到我")
         .task { await load() }
         .refreshable { await load() }
@@ -231,7 +239,9 @@ struct GuardingWhoView: View {
                     }
                 }
             }
+            .listRowBackground(Theme.rowBackground)
         }
+        .themedList()
         .overlay { if list.isEmpty { ContentUnavailableView("你还没有在守护谁", systemImage: "shield") } }
         .navigationTitle("我在守护的人")
         .task { list = (try? await model.api.grantsToMe()) ?? [] }
@@ -266,7 +276,9 @@ struct HomePlacesView: View {
             } footer: {
                 Text("家的位置只存在这台 iPhone 和你的手表上，不会上传，守护你的人也看不到。换手机后要重新设。到家时只会问你一句“安全到家了吗”，不会替你自动结束。")
             }
+            .listRowBackground(Theme.rowBackground)
         }
+        .themedList()
         .navigationTitle("家庭地址")
         .sheet(isPresented: $adding) {
             PlacePicker(title: "添加地点", initial: nil) { p in

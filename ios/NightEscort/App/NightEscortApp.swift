@@ -60,5 +60,9 @@ enum AppAppearance {
         let item = UITabBarItem.appearance()
         item.setTitleTextAttributes([.font: pf("PingFangSC-Medium", 10, .caption2)], for: .normal)
         UIBarButtonItem.appearance().setTitleTextAttributes([.font: pf("PingFangSC-Regular", 17, .body)], for: .normal)
+        // App 固定深色：每个窗口都跟着固定，半屏页、系统弹窗、菜单才不会漏（SwiftUI 的 preferredColorScheme 管不全）
+        NotificationCenter.default.addObserver(forName: UIWindow.didBecomeVisibleNotification, object: nil, queue: .main) { note in
+            (note.object as? UIWindow)?.overrideUserInterfaceStyle = .dark
+        }
     }
 }
