@@ -27,6 +27,7 @@ App 名：**安全回家**（工程、Bundle ID 仍叫 NightEscort）。口号�
 | 薰衣草 | `#C7B8EA` | 强调色（链接、图标、进度条）、别人的字母头像、手表主按钮；右下光晕 |
 | 深紫字 | `#2A1F3D` | 金色、薰衣草底上的字 |
 | 求救红 | 系统红 | 只用在 SOS 和联系不上 |
+| App 图标 | 深紫底加两团光晕，小屋和人物线条蜜桃金 | iPhone 和手表同一个图案（11-19 从白底蓝线改过来，图形没动） |
 
 代码里对应：色值在 `ios/Shared/Palette.swift`（`Brand`、`Palette`），手机 `Theme`（`NightEscort/Views/Common/Components.swift`），手表 `WTheme`（`NightEscortWatch/WatchViews.swift`）。小组件和灵动岛跟手机一样。
 
