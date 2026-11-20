@@ -30,7 +30,7 @@ async function drawSegment(scr, seg, lt, alpha, prog) {
   const h = im.height * s;
   g.drawImage(im, 0, (scr.h - h) / 2, scr.w, h);
   g.restore();
-  if (seg.img && prog.time) {
+  if (prog.time) {
     if (prog.kind === 'phone') coverPhoneTime(scr, prog.time, alpha);
     else coverWatchTime(scr, prog.time, alpha);
   }

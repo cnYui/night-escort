@@ -11,7 +11,7 @@ const types = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript', '
 function resolve(url) {
   const u = decodeURIComponent(url.split('?')[0]);
   for (const [from, to] of alias) {
-    if (u === from || (from.endsWith('/') && u.startsWith(from))) return to.endsWith('/') ? path.join(to, u.slice(from.length)) : to;
+    if (from.endsWith('/') ? u.startsWith(from) : u === from) return from.endsWith('/') ? path.join(to, u.slice(from.length)) : to;
   }
   const p = path.join(root, u);
   return p.startsWith(root) ? p : null;

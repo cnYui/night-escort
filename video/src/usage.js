@@ -117,6 +117,12 @@ function watchFrame(im, cx, cy, w, dim) {
   g.beginPath(); g.roundRect(x - 6, y - 6, w + 12, h + 12, 48); g.fill();
   g.save(); g.beginPath(); g.roundRect(x, y, w, h, 42); g.clip();
   if (im) g.drawImage(im, x, y, w, h);
+  if (im && edl.watchTime) { // 手表录屏的状态栏是录制时的真实时间，盖成和手机一样的 23:47
+    const s = w / 416;
+    g.fillStyle = '#000'; g.fillRect(x + 290 * s, y + 22 * s, 120 * s, 48 * s);
+    g.fillStyle = '#fff'; g.font = `600 ${38 * s}px "Noto Sans SC"`; g.textAlign = 'right'; g.textBaseline = 'middle';
+    g.fillText(edl.watchTime, x + 388 * s, y + 48 * s);
+  }
   if (dim > 0) { g.fillStyle = `rgba(10,8,16,${dim})`; g.fillRect(x, y, w, h); }
   g.restore();
   // 表冠

@@ -27,8 +27,9 @@ for (const j of jobs) {
   fs.rmSync(dir, { recursive: true, force: true });
   fs.mkdirSync(dir, { recursive: true });
   console.log('拆帧', j.file);
-  // fps=30 会按原始时间戳补齐/丢帧（模拟器录屏只在画面变化时写帧），第 n 帧就是第 (n-1)/30 秒
-  const r = spawnSync('ffmpeg', ['-v', 'error', '-i', j.file, '-vf', `fps=30,scale='min(${j.width},iw)':-2`, '-q:v', '3', path.join(dir, '%05d.jpg')], { stdio: 'inherit' });
+  // fps=30 会按原始时间戳补齐/丢帧（模拟器录屏只在画面变化时写帧），第 n 帧就是第 (n-1)/30 秒。
+  // simctl 录屏的 DTS 有错（ake.mp4 179 秒后、xiaolin.mp4 345 秒后会整体提前），所以 +igndts 只按 PTS 排帧。
+  const r = spawnSync('ffmpeg', ['-v', 'error', '-fflags', '+igndts', '-i', j.file, '-vf', `fps=30,scale='min(${j.width},iw)':-2`, '-q:v', '3', path.join(dir, '%05d.jpg')], { stdio: 'inherit' });
   if (r.status !== 0) { console.error('ffmpeg 失败', j.file); process.exit(1); }
   const n = fs.readdirSync(dir).filter((f) => f.endsWith('.jpg')).length;
   manifest['assets/rec/' + j.name] = n;

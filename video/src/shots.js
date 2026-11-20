@@ -68,7 +68,7 @@ function tag(c, x, y, text, color, k = 1) {
 
 // 屏幕节目：没有录屏时用定稿截图
 const R = REC; // 录屏素材的时间点（rec.js，没有录屏时为 null）
-const progStart = R ? R.start : program([
+const progStart = R && R.start ? R.start : program([
   { at: 0, img: S + 'iphone-home.jpg' },
   { at: 3.2, img: S + 'iphone-start.jpg' },
   { at: 5.6, img: S + 'iphone-active.jpg' },
@@ -76,14 +76,14 @@ const progStart = R ? R.start : program([
 const progWatchRun = program([
   { at: 0, img: S + 'watch-running.png' },
 ], { kind: 'watch', time: '23:58', taps: [{ at: 3.0, x: 180, y: 380 }] });
-const progMissPhone = R ? R.missA : program([{ at: 0, img: S + 'iphone-guarding.jpg' }], { time: '00:08' });
-const progMissPhone2 = R ? R.missB : program([{ at: 0, img: S + 'iphone-incident.jpg' }], { time: '00:08' });
+const progMissAke = R ? R.missAke : program([{ at: 0, img: S + 'iphone-guarding.jpg' }], { time: '00:08' });
+const progMissMom = R ? R.missMom : program([{ at: 0, img: S + 'iphone-guarding.jpg' }], { time: '00:08' });
 const progWatchSos = program([
   { at: 0, img: S + 'watch-idle.png' },
   { at: 2.6, img: S + 'watch-sos.png' },
 ], { kind: 'watch', time: '00:21', taps: [{ at: 0.4, x: 208, y: 435, hold: 2.0 }] });
-const progSosPhone = R ? R.sosB : program([{ at: 0, img: S + 'iphone-incident.jpg' }], { time: '00:21' });
-const progSosPhone2 = R ? R.sosA : program([{ at: 0, img: S + 'iphone-incident.jpg' }], { time: '00:21' });
+const progSosAke = R ? R.sosAke : program([{ at: 0, img: S + 'iphone-incident.jpg' }], { time: '00:21' });
+const progSosMom = program([{ at: 0, img: S + 'iphone-incident.jpg' }], { time: '00:21' });
 const progWatchHome = program([
   { at: 0, img: S + 'watch-home.png' },
 ], { kind: 'watch', time: '00:34', taps: [{ at: 2.6, x: 208, y: 395 }] });
@@ -249,7 +249,7 @@ export const SHOTS = [
       } else {
         const lt = t - 4.2;
         studio.update(t, 'alert');
-        await placePhonePair(c, lt, progMissPhone2, progMissPhone);
+        await placePhonePair(c, lt, progMissAke, progMissMom);
       }
     },
     overlay(c, t) {
@@ -292,7 +292,7 @@ export const SHOTS = [
       } else {
         const lt = t - 3.6;
         studio.update(t, 'sos');
-        await placePhonePair(c, lt, progSosPhone, progSosPhone2);
+        await placePhonePair(c, lt, progSosAke, progSosMom);
         c.grade.uniforms.tint.value.set(1.06, 0.95, 0.97);
       }
     },
@@ -379,8 +379,8 @@ async function placePhonePair(c, lt, progLeft, progRight) {
   phone.group.position.x += buzz(0.3); phoneB.group.position.x += buzz(0.55);
   await renderScreen(phone.screen, progLeft, lt);
   await renderScreen(phoneB.screen, progRight, lt);
-  const cam = track([[0, V(0, 0.01, 0.42)], [5, V(0, 0.005, 0.38)]], lt);
-  useCamera(c, cam, V(0, 0, 0), 36);
+  const cam = track([[0, V(0, -0.003, 0.455)], [5, V(0, -0.008, 0.41)]], lt);
+  useCamera(c, cam, V(0, -0.013, 0), 36);
 }
 
 function pinTags(c, k, items) {

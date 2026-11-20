@@ -2,7 +2,7 @@
 //   node make.js preview usage 5,30,60 [宽 高]   只渲染几个时刻，存到 out/preview-usage/
 //   node make.js render usage [--workers 3] [--from 秒] [--to 秒]   逐帧渲染 → 配乐 → out/usage.mp4
 //   node make.js render promo …                                     同上，宣传片 → out/promo.mp4
-// 环境变量：GL=gpu|swiftshader（Windows 默认 gpu，其它默认 swiftshader）、BROWSER_CHANNEL=msedge|chrome|chromium、HEADLESS=0、PYTHON=python
+// 环境变量：GL=gpu|swiftshader（Windows 默认 gpu，其它默认 swiftshader）、BROWSER_CHANNEL=chrome|msedge|chromium（Windows 默认先 Chrome 再 Edge）、HEADLESS=0、PYTHON=python
 const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
@@ -20,13 +20,17 @@ function playwright() {
 async function launch() {
   const win = process.platform === 'win32';
   const gl = process.env.GL || (win ? 'gpu' : 'swiftshader');
-  const channel = process.env.BROWSER_CHANNEL || (win ? 'msedge' : undefined);
+  const channels = process.env.BROWSER_CHANNEL ? [process.env.BROWSER_CHANNEL] : (win ? ['chrome', 'msedge'] : ['chromium']);
   const args = gl === 'swiftshader'
     ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--disable-gpu-sandbox']
     : ['--ignore-gpu-blocklist', '--enable-gpu-rasterization', ...(win ? ['--use-angle=d3d11'] : [])];
-  const opts = { headless: process.env.HEADLESS !== '0', args };
-  if (channel && channel !== 'chromium') opts.channel = channel;
-  return playwright().chromium.launch(opts);
+  let err;
+  for (const channel of channels) {
+    const opts = { headless: process.env.HEADLESS !== '0', args };
+    if (channel !== 'chromium') opts.channel = channel;
+    try { return await playwright().chromium.launch(opts); } catch (e) { err = e; console.warn(`启动 ${channel} 失败，试下一个`); }
+  }
+  throw err;
 }
 
 async function openPage(browser, port, kind, w, h) {
