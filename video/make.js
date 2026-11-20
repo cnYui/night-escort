@@ -137,8 +137,10 @@ function opt(args, name, def) {
       run(py, ['audio.py', 'usage', wav, String(duration), ev]);
     }
     const mp4 = path.join(ROOT, 'out', kind + '.mp4');
+    // 宣传片有雨丝和颗粒，不限码率会到 80 Mbps；限在 20 Mbps 以内，画质看不出差别
+    const rate = kind === 'promo' ? ['-crf', '20', '-maxrate', '20M', '-bufsize', '40M'] : ['-crf', '18'];
     run('ffmpeg', ['-y', '-v', 'error', '-framerate', String(FPS), '-i', path.join(dir, 'f%05d.jpg'), '-i', wav,
-      '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k',
+      '-c:v', 'libx264', '-preset', 'slow', ...rate, '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-b:a', '192k',
       '-shortest', '-movflags', '+faststart', mp4]);
     console.log('完成：', mp4);
   } finally {

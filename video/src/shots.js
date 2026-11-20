@@ -127,8 +127,12 @@ export const SHOTS = [
       const x = 34 - SPEED * t;
       placeWoman(x, t + 3);
       // 镜头在她前方低机位慢慢后退，后面换成侧面跟拍
-      const p = track([[0, V(x - 4.2, 1.1, 8.3)], [3.2, V(x - 3.6, 1.2, 8.6)], [6, V(x - 1.5, 1.4, 10.4)]], t);
-      useCamera(c, p, V(x, 1.15, WALK_Z), 38);
+      // 机位别进到店面墙里（z≈9.55 是门脸）；人放在画面偏右，左下角留给字幕
+      const p = track([[0, V(x - 4.2, 1.1, 8.3)], [3.2, V(x - 3.6, 1.2, 8.7)], [6, V(x - 2.7, 1.3, 9.1)]], t);
+      const look = V(x, 1.15, WALK_Z);
+      const dir = look.clone().sub(p).setY(0).normalize();
+      look.addScaledVector(V(-dir.z, 0, dir.x), -0.75);
+      useCamera(c, p, look, 38);
       c.city.placeLights(x, 7); lamps(c, 1);
       c.rain.update(t + 6, c.camera.position);
       dof(c, p.distanceTo(V(x, 1.2, WALK_Z)), 0.0016, 0.006);
@@ -317,10 +321,13 @@ export const SHOTS = [
     async update(c, t) {
       hideAll();
       door.visible = true;
-      const stopX = -66.4;
-      const x = Math.max(stopX, -54 - SPEED * t * 1.1);
-      const walking = x > stopX + 0.01;
-      placeWoman(x, walking ? t * 1.1 : (stopX + 54) / (SPEED * 1.1) + 0.0, walking ? 0 : lerp(0, Math.PI / 2, smooth((t - 4.6) / 0.8)));
+      // 镜头一开始她就在画面里，走到门口（约 4.3 秒）停下，转身面向门
+      const startX = -60.9, stopX = -67.1, v = SPEED * 1.1;
+      const arrive = (startX - stopX) / v;
+      const x = Math.max(stopX, startX - v * t);
+      const walking = t < arrive;
+      placeWoman(x, walking ? t * 1.1 : arrive * 1.1, walking ? 0 : lerp(0, Math.PI / 2, smooth((t - arrive) / 0.8)));
+      if (!walking && woman.idle) woman.idle(t - arrive);
       const p = track([[0, V(-58.0, 1.7, 1.6)], [6, V(-60.6, 1.6, 2.4)]], t);
       useCamera(c, p, V(-66.0, 1.3, 8.6), 40);
       c.city.placeLights(-66, 7); lamps(c, 1);

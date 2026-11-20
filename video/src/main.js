@@ -77,7 +77,7 @@ const grade = new ShaderPass({
   fragmentShader: `uniform sampler2D tDiffuse; uniform float time; uniform float vignette; uniform float fade; uniform vec3 tint; varying vec2 vUv;
     float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233)))*43758.5453); }
     void main(){ vec4 c = texture2D(tDiffuse, vUv); vec2 d = vUv-0.5; float v = 1.0 - vignette*dot(d,d)*1.2;
-      c.rgb *= v; c.rgb *= tint; c.rgb += (hash(vUv*vec2(1920.,1080.)+time)-0.5)*0.025; c.rgb *= fade; gl_FragColor = c; }`,
+      c.rgb *= v; c.rgb *= tint; c.rgb += (hash(vUv*vec2(1920.,1080.)+time)-0.5)*0.014; c.rgb *= fade; gl_FragColor = c; }`,
 });
 composer.addPass(grade);
 composer.addPass(new OutputPass());
