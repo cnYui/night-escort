@@ -55,10 +55,12 @@ final class TourTests: XCTestCase {
         try await mom.signup(phone: momPhone, password: password)
 
         // 1. 注册
+        mark("小林-启动")
         app.launch()
         let phoneField = app.textFields["手机号"]
         XCTAssertTrue(phoneField.waitForExistence(timeout: 30), "没看到登录页")
         await pause(3)
+        mark("小林-输手机号")
         phoneField.tap()
         phoneField.typeText(xiaolinPhone)
         app.switches.matching(NSPredicate(format: "label CONTAINS %@", "我已阅读并同意")).firstMatch.tap()
@@ -72,6 +74,7 @@ final class TourTests: XCTestCase {
 
         let pwd = app.secureTextFields["至少 8 位，含字母和数字"]
         XCTAssertTrue(pwd.waitForExistence(timeout: 20), "新号码没进入设置密码")
+        mark("小林-设密码昵称")
         await pause(1)
         pwd.tap()
         pwd.typeText(password)
@@ -82,10 +85,12 @@ final class TourTests: XCTestCase {
         app.buttons["完成"].tap()
         XCTAssertTrue(app.staticTexts["谁在守护我"].waitForExistence(timeout: 20), "注册后没进首页")
         poke()
+        mark("小林-首页")
         await pause(2.5)
 
         // 2. 阿珂、妈妈发来邀请链接，点开加为好友
         for peer in [ake, mom] {
+            mark("小林-点\(peer.name)的邀请链接")
             let invite = try await peer.api.createInvite(kind: .standing)
             XCUIDevice.shared.system.open(URL(string: "\(InviteLink.appScheme)://i/\(invite.token)")!)
             let springboard = XCUIApplication(bundleIdentifier: "com.apple.springboard")
@@ -94,6 +99,7 @@ final class TourTests: XCTestCase {
             }
             let add = app.buttons["加为好友"]
             XCTAssertTrue(add.waitForExistence(timeout: 15), "点\(peer.name)的邀请链接没弹出名片")
+            mark("小林-\(peer.name)名片")
             await pause(3)
             add.tap()
             try await waitUntil("\(peer.name)那边看到互相守护") {
@@ -105,6 +111,7 @@ final class TourTests: XCTestCase {
         let me = try await ake.api.connections().first { $0.peer.displayName == "小林" }!.peer
 
         // 3. 点气泡选妈妈和阿珂，我要回家了
+        mark("小林-选人")
         for name in ["妈妈", "阿珂"] {
             let bubble = labeled(name)
             XCTAssertTrue(bubble.waitForExistence(timeout: 20), "首页没出现\(name)的气泡")
@@ -114,12 +121,15 @@ final class TourTests: XCTestCase {
         let goHome = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "我要回家了")).firstMatch
         XCTAssertTrue(goHome.waitForExistence(timeout: 5), "选了人没出现「我要回家了」")
         await pause(2)
+        mark("小林-我要回家了")
         goHome.tap()
         let depart = app.buttons["出发"]
         XCTAssertTrue(depart.waitForExistence(timeout: 10))
         try await waitUntil("「出发」可以点", timeout: 60) { depart.isEnabled }
+        mark("小林-开始页")
         await pause(3)
         depart.tap()
+        mark("小林-出发")
         poke()
         XCTAssertTrue(app.buttons["我没事"].waitForExistence(timeout: 15), "出发后没进入回家路上")
         try await waitUntil("阿珂的守护页里出现小林") {
@@ -128,6 +138,7 @@ final class TourTests: XCTestCase {
         await pause(6)
 
         // 4. 报平安
+        mark("小林-报平安")
         app.buttons["我没事"].tap()
         try await waitUntil("报平安后下次时间往后推") {
             let card = try await ake.api.guarding().first { $0.owner.id == me.id }
@@ -139,10 +150,13 @@ final class TourTests: XCTestCase {
         let dev = Dev(base: base)
         let due = try await ake.api.guarding().first { $0.owner.id == me.id }?.nextDueAt
         let left = try await dev.minutes(until: try XCTUnwrap(due))
+        mark("小林-到点")
         try await dev.advance(minutes: left + 1)
         await pause(5)
+        mark("小林-超时10分钟")
         try await dev.advance(minutes: 11)
         XCTAssertTrue(app.staticTexts["需要你回应"].waitForExistence(timeout: 30), "漏报后 App 没变成需要回应")
+        mark("小林-需要你回应")
         let missed = try await waitFor("妈妈收到联系不上") {
             try await mom.api.guarding().first { $0.owner.id == me.id && $0.status == .alerting }?.incident
         }
@@ -150,14 +164,17 @@ final class TourTests: XCTestCase {
         _ = try? await mom.api.markSeen(incidentId: missed.id)
         // 阿珂在她的手机上点「已联系上，她安全」
         XCTAssertTrue(app.staticTexts["回家路上"].waitForExistence(timeout: 240), "阿珂确认安全后没回到回家路上")
+        mark("小林-阿珂确认安全")
         await pause(4)
 
         // 6. 一键求救：长按
         let sos = labeled("紧急求救")
         XCTAssertTrue(sos.waitForExistence(timeout: 10))
         await pause(1)
+        mark("小林-长按求救")
         sos.press(forDuration: 2.6)
         XCTAssertTrue(app.staticTexts["已发出求救"].waitForExistence(timeout: 20), "长按后没发出求救")
+        mark("小林-已发出求救")
         let sosInc = try await waitFor("妈妈收到求救") {
             try await mom.api.guarding().first { $0.owner.id == me.id && $0.incident?.kind == .sos }?.incident
         }
@@ -167,10 +184,12 @@ final class TourTests: XCTestCase {
         await pause(4)
 
         // 7. 到家，结束
+        mark("小林-结束")
         app.buttons["结束"].tap()
         await pause(1.5)
         app.buttons["结束，不用再守了"].tap()
         try await waitUntil("这次回家结束了") { !app.buttons["我没事"].exists }
+        mark("小林-回到首页")
         await pause(5)
     }
 
@@ -188,6 +207,7 @@ final class TourTests: XCTestCase {
         await pause(1)
 
         // 1. 验证码登录（老账号直接进首页）
+        mark("阿珂-登录")
         phoneField.tap()
         phoneField.typeText(akePhone)
         app.switches.matching(NSPredicate(format: "label CONTAINS %@", "我已阅读并同意")).firstMatch.tap()
@@ -204,6 +224,7 @@ final class TourTests: XCTestCase {
             try await probe.api.guarding().contains { $0.owner.displayName == "小林" && $0.status == .active }
         }
         await pause(1.5)
+        mark("阿珂-我守护的人")
         app.tabBars.buttons["我守护的人"].tap()
         XCTAssertTrue(labeled("小林").waitForExistence(timeout: 30), "我守护的人里没出现小林")
 
@@ -223,7 +244,9 @@ final class TourTests: XCTestCase {
     private func confirmSafe(what: String) async throws {
         let safe = app.buttons["已联系上，她安全"]
         XCTAssertTrue(safe.waitForExistence(timeout: 400), "阿珂没收到\(what)")
+        mark("阿珂-收到\(what)")
         await pause(5)
+        mark("阿珂-已联系上")
         safe.tap()
         let phone = labeled("电话")
         if phone.waitForExistence(timeout: 5) {
@@ -233,12 +256,18 @@ final class TourTests: XCTestCase {
         await pause(1.5)
         let keep = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "继续护航")).firstMatch
         XCTAssertTrue(keep.waitForExistence(timeout: 20))
+        mark("阿珂-继续护航")
         keep.tap()
         try await waitUntil("提醒框收起", timeout: 30) { !safe.exists }
         await pause(3)
     }
 
     // MARK: 工具
+
+    /// 剪辑用的时间点：xcodebuild 日志里搜 TOURMARK
+    private func mark(_ name: String) {
+        print(String(format: "TOURMARK|%@|%.3f", name, Date().timeIntervalSince1970))
+    }
 
     private func pause(_ seconds: Double) async {
         try? await Task.sleep(for: .milliseconds(Int(seconds * pace * 1000)))

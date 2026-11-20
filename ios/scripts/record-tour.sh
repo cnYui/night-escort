@@ -169,6 +169,7 @@ for p in "${RECS[@]}"; do wait "$p" 2>/dev/null || true; done
 RECS=()
 echo "end $(now)" >> "$OUT/times.txt"
 grep -hE "error:|failed|passed|Executed|TEST (SUCCEEDED|FAILED)|XCTAssert|等了" "$OUT/test-xiaolin.log" "$OUT/test-ake.log" | tail -20
+grep -h "TOURMARK|" "$OUT/test-xiaolin.log" "$OUT/test-ake.log" | sed "s/.*TOURMARK|/TOURMARK|/" | sort -t"|" -k3 > "$OUT/marks.txt" || true
 
 echo "== 5/6 手表演示页面各录几秒"
 if [ "$WATCH" = 1 ]; then
