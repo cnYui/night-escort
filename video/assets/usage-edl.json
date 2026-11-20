@@ -1,0 +1,51 @@
+{
+  "fps": 30,
+  "note": "墙上时间 w：从小林那台手机开始录屏算起的秒数（times.txt：xiaolin 1795164293.315，ake 晚 0.935 秒）。两段测试日志的 Start Test 都在 w≈129.1。",
+  "rec": {
+    "xiaolin": { "dir": "assets/rec/xiaolin", "start": 0 },
+    "ake": { "dir": "assets/rec/ake", "start": 0.935 }
+  },
+  "watch": [
+    { "w": 0, "scene": "signin" },
+    { "w": 195.5, "scene": "idle" },
+    { "w": 258.9, "scene": "running" },
+    { "w": 313.5, "scene": "alerting" },
+    { "w": 339.6, "scene": "running" },
+    { "w": 348.6, "scene": "sos" },
+    { "w": 365.6, "scene": "running" },
+    { "w": 374.0, "scene": "idle" }
+  ],
+  "sfx": [
+    { "w": 299.6, "kind": "checkin" },
+    { "w": 318.7, "kind": "alarm", "dur": 3 },
+    { "w": 352.1, "kind": "alarm", "dur": 3 }
+  ],
+  "chapters": [
+    { "id": "login", "name": "注册登录" },
+    { "id": "friends", "name": "加好友" },
+    { "id": "depart", "name": "选人出发" },
+    { "id": "checkin", "name": "报平安" },
+    { "id": "missed", "name": "超时提醒" },
+    { "id": "sos", "name": "一键求救" },
+    { "id": "end", "name": "到家结束" }
+  ],
+  "intro": 4.5,
+  "outro": 4.5,
+  "clips": [
+    { "chapter": "login", "w0": 157.5, "w1": 163.0, "rate": 1, "title": "两个人各自用手机号登录", "sub": "左边小林第一次用，右边阿珂已经注册过" },
+    { "chapter": "login", "w0": 163.0, "w1": 183.0, "rate": 2.5, "title": "填手机号，勾选同意，收验证码", "sub": "不用记密码，验证码就能登录" },
+    { "chapter": "login", "w0": 183.0, "w1": 197.5, "rate": 2, "focus": "xiaolin", "title": "第一次用，再设个密码和昵称", "sub": "昵称是守护你的人看到的名字" },
+    { "chapter": "friends", "w0": 210.0, "w1": 221.5, "rate": 1.5, "focus": "xiaolin", "title": "阿珂发来邀请链接，小林点开就是她的名片", "sub": "点「加为好友」，两个人从此互相守护" },
+    { "chapter": "friends", "w0": 221.5, "w1": 241.5, "rate": 3, "focus": "xiaolin", "title": "妈妈的邀请也一样加上", "sub": "加好友就是互相守护，不用另外设置" },
+    { "chapter": "depart", "w0": 241.5, "w1": 254.0, "rate": 1.25, "focus": "xiaolin", "title": "首页点选今晚守着自己的人", "sub": "选了妈妈和阿珂，下面浮出「我要回家了」" },
+    { "chapter": "depart", "w0": 254.0, "w1": 262.5, "rate": 1, "title": "看一眼设置，点「出发」", "sub": "阿珂这边的「我守护的人」里马上出现小林" },
+    { "chapter": "checkin", "w0": 262.5, "w1": 292.0, "rate": 3, "title": "第一次出发时允许定位", "sub": "只在回家路上共享位置，到家就停止" },
+    { "chapter": "checkin", "w0": 294.0, "w1": 304.0, "rate": 1, "title": "到了报平安的时间，点「我没事」", "sub": "手表上也能点；阿珂那边的下次报平安时间跟着往后推" },
+    { "chapter": "missed", "w0": 304.0, "w1": 313.5, "rate": 1.5, "focus": "xiaolin", "title": "如果到点没报平安，先只提醒她自己", "sub": "再过 10 分钟还没回应，才通知守护她的人", "time": "+11 分钟", "timeSub": "演示里把时钟往后拨" },
+    { "chapter": "missed", "w0": 313.5, "w1": 324.5, "rate": 1, "title": "小林没回应，阿珂和妈妈同时收到提醒", "sub": "阿珂的手机会一直响，直到有人联系上她", "timeColor": "#FF6B7D" },
+    { "chapter": "missed", "w0": 324.5, "w1": 341.0, "rate": 1.5, "focus": "ake", "title": "阿珂打电话确认她没事，点「继续护航」", "sub": "小林这边回到「回家路上」" },
+    { "chapter": "sos", "w0": 342.0, "w1": 352.5, "rate": 1, "title": "遇到危险，长按「紧急求救」", "sub": "不用解锁找联系人，长按两秒就发出去" },
+    { "chapter": "sos", "w0": 352.5, "w1": 366.5, "rate": 1.75, "title": "所有守护她的人同时收到求救和位置", "sub": "阿珂联系上她、确认安全后，求救解除" },
+    { "chapter": "end", "w0": 367.0, "w1": 377.5, "rate": 1, "focus": "xiaolin", "title": "到家了，点「结束」", "sub": "这次回家结束，位置共享也随之停止" }
+  ]
+}

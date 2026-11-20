@@ -1,0 +1,15 @@
+{
+  "name": "anquan-huijia-video",
+  "private": true,
+  "description": "「安全回家」使用视频和宣传片：three.js 逐帧渲染 + 录屏剪辑",
+  "scripts": {
+    "serve": "node server.js"
+  },
+  "dependencies": {
+    "@fontsource/noto-sans-sc": "5.3.1",
+    "three": "0.170.0"
+  },
+  "optionalDependencies": {
+    "playwright-core": "1.50.1"
+  }
+}
