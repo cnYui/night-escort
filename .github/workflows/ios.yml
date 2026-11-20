@@ -49,6 +49,16 @@ jobs:
             -destination 'generic/platform=watchOS Simulator' \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO | tee build-watch.log | grep -E "error:|BUILD" || true
           grep -q "BUILD SUCCEEDED" build-watch.log
+      - name: 上架必备项检查（Apple 登录权限、隐私清单真的打进了包里）
+        working-directory: ios
+        run: |
+          set -e
+          grep -q "com.apple.developer.applesignin" NightEscort/NightEscort.entitlements
+          plutil -lint NightEscort/PrivacyInfo.xcprivacy NightEscortWatch/PrivacyInfo.xcprivacy
+          PRODUCTS=$(find ~/Library/Developer/Xcode/DerivedData -type d -path '*Build/Products' | head -1)
+          ls "$PRODUCTS"
+          test -f "$PRODUCTS/Debug-iphonesimulator/NightEscort.app/PrivacyInfo.xcprivacy"
+          test -f "$PRODUCTS/Debug-watchsimulator/NightEscortWatch.app/PrivacyInfo.xcprivacy"
       - if: failure()
         uses: actions/upload-artifact@v4
         with:

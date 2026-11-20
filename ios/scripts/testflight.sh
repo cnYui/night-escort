@@ -12,6 +12,7 @@
 #   KEYCHAIN_PATH / KEYCHAIN_PASSWORD
 #                  SSH 远程打包时，放签名证书的单独钥匙串，脚本会先解锁它。
 #   UPLOAD=0       只导出 .ipa 到 build/export，不上传
+#   ALLOW_LEGAL_PLACEHOLDERS=1  协议里还有【占位符】时也继续（只给内部自测用）
 #
 # 用法：TEAM_ID=ABCDE12345 API_HOST=api.example.com ios/scripts/testflight.sh
 set -euo pipefail
@@ -35,6 +36,14 @@ if [ -n "${KEYCHAIN_PATH:-}" ]; then
   security unlock-keychain -p "${KEYCHAIN_PASSWORD:?设置了 KEYCHAIN_PATH 也要设置 KEYCHAIN_PASSWORD}" "$KEYCHAIN_PATH"
   security set-keychain-settings -t 3600 "$KEYCHAIN_PATH"
   security list-keychains -d user -s "$KEYCHAIN_PATH" $(security list-keychains -d user | tr -d '"')
+fi
+
+# 用户协议和隐私政策里的【运营者名称】【联系邮箱】【运营者所在地】没填就不能上传：
+# App Store 审核和备案都会看这两份文件。只想内部自测可以 ALLOW_LEGAL_PLACEHOLDERS=1 跳过。
+if grep -n '【' ../backend/legal/*.md >/dev/null 2>&1 && [ "${ALLOW_LEGAL_PLACEHOLDERS:-0}" != "1" ]; then
+  echo "backend/legal/ 里还有没填的【占位符】，先填好再上传（只自测可加 ALLOW_LEGAL_PLACEHOLDERS=1）：" >&2
+  grep -n '【' ../backend/legal/*.md >&2
+  exit 1
 fi
 
 echo "== 生成工程"

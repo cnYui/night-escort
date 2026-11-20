@@ -72,4 +72,4 @@ cd ios/Packages/EscortKit && swift test
 
 ## 还没做的
 
-App 图标、微信登录 SDK 接入（现在是占位）、运营后台。
+微信登录（第一版登录页没有这个按钮，后端 `/v1/auth/wechat` 留着，要做需要先有微信开放平台的企业账号）、运营后台。
