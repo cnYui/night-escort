@@ -90,7 +90,7 @@ rec() { # 模拟器 文件 → 后台录屏
   echo "$(basename "$2") $(now)" >> "$OUT/times.txt"
 }
 
-echo "== 1/6 数据库和后端（端口 $PORT，测试号码 +86199000*，可拨时钟）"
+echo "== 1/6 数据库和后端（端口 ${PORT}，测试号码 +86199000*，可拨时钟）"
 PG="$(brew --prefix postgresql@16 2>/dev/null)/bin"
 [ -x "$PG/psql" ] || PG="$(dirname "$(command -v psql)")"
 "$PG/pg_isready" -h 127.0.0.1 -q || { echo "PostgreSQL 没在跑：brew services start postgresql@16"; exit 1; }
@@ -148,7 +148,7 @@ rec "$A" "$OUT/xiaolin.mp4"
 rec "$B" "$OUT/ake.mp4"
 [ -n "$W" ] && rec "$W" "$OUT/watch.mp4"
 sleep 1
-export TEST_RUNNER_NE_API_BASE_URL="http://localhost:$PORT" TEST_RUNNER_NE_SMS_TEST_CODE=$CODE \
+export TEST_RUNNER_NE_API_BASE_URL="http://127.0.0.1:$PORT" TEST_RUNNER_NE_SMS_TEST_CODE=$CODE \
   TEST_RUNNER_NE_TOUR_RUN=$RUN TEST_RUNNER_NE_TOUR_PACE=$PACE
 set +e
 xcodebuild test-without-building -project NightEscort.xcodeproj -scheme NightEscortUITests -destination "id=$B" \
