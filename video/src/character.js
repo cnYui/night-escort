@@ -35,12 +35,24 @@ export async function loadWoman(url = 'assets/models/woman.glb', opts = {}) {
     group.add(inner);
     const mixer = new THREE.AnimationMixer(root);
     const clip = gltf.animations.find((a) => /walk/i.test(a.name)) || gltf.animations[0];
-    const action = clip ? mixer.clipAction(clip) : null;
-    if (action) action.play();
+    const walk = clip ? mixer.clipAction(clip) : null;
+    if (walk) walk.play();
     const dur = clip ? clip.duration : 1;
+    // 待机动作：同一骨架另导出的 woman_idle.glb（没有就停在走路的某一帧）
+    let idle = null, idleDur = 1;
+    try {
+      const iu = url.replace(/\.glb$/, '_idle.glb');
+      if ((await fetch(iu, { method: 'HEAD' })).ok) {
+        const ig = await new GLTFLoader().loadAsync(iu);
+        const ic = ig.animations.find((a) => /idle|stand|breath/i.test(a.name)) || ig.animations[0];
+        if (ic) { idle = mixer.clipAction(ic); idle.play(); idle.setEffectiveWeight(0); idleDur = ic.duration; }
+      }
+    } catch (e) { idle = null; }
+    const use = (w) => { if (walk) walk.setEffectiveWeight(w); if (idle) idle.setEffectiveWeight(1 - w); };
     return {
       group, real: true, clipDuration: dur,
-      pose(t) { if (action) mixer.setTime(t % dur); },
+      pose(t) { use(1); mixer.setTime(t % dur); },
+      idle: idle ? (t) => { use(0); mixer.setTime(t % idleDur); } : null,
     };
   } catch (e) {
     return placeholder();
