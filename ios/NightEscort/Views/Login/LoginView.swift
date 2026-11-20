@@ -3,8 +3,9 @@ import EscortKit
 import SwiftUI
 
 /**
- 登录（设计文档第 9 节）：默认验证码登录，可切换密码登录；底部微信和 Apple。
- 新号码验证后必须设密码、填昵称；微信 / Apple 登录必须绑定手机号，没有“跳过”。
+ 登录（设计文档第 9 节）：默认验证码登录，可切换密码登录；底部 Apple 登录。
+ 新号码验证后必须设密码、填昵称；Apple 登录必须绑定手机号，没有“跳过”。
+ 微信登录第一版不做：微信开放平台需要企业资质，没接入前不放按钮（后端 /v1/auth/wechat 和 APIClient.loginWithWeChat 留着）。
  */
 struct LoginView: View {
     @EnvironmentObject var model: AppModel
@@ -38,7 +39,7 @@ struct LoginView: View {
     }
 
     /**
-     勾选同意《用户协议》和《隐私政策》：不勾就不能获取验证码、登录、微信和 Apple 登录（新号码登录后直接进入注册，所以注册也一样）。
+     勾选同意《用户协议》和《隐私政策》：不勾就不能获取验证码、登录和 Apple 登录（新号码登录后直接进入注册，所以注册也一样）。
      两个书名可以点开看全文。勾选框单独一个开关，方便读屏和界面测试（标签含“我已阅读并同意”）。
      */
     private var agreement: some View {
@@ -120,22 +121,6 @@ struct LoginView: View {
                 Divider().padding(.vertical, 8)
 
                 VStack(spacing: 12) {
-                    Button {
-                        WeChatLogin.start { code in
-                            Task { await run { try await model.api.loginWithWeChat(code: code) } }
-                        }
-                    } label: {
-                        Label {
-                            Text("微信登录").font(.pf(.headline)).foregroundStyle(.primary)
-                        } icon: {
-                            Image(systemName: "message.fill").foregroundStyle(Color(red: 0.03, green: 0.76, blue: 0.38))
-                        }
-                        .frame(maxWidth: .infinity)
-                    }
-                    .glassButton()
-                    .controlSize(.large)
-                    .disabled(!agreed)
-
                     SignInWithAppleButton(.signIn) { req in
                         req.requestedScopes = []
                     } onCompletion: { result in
@@ -150,7 +135,7 @@ struct LoginView: View {
                     .clipShape(Capsule())
                     .disabled(!agreed)
                 }
-                Text("微信或 Apple 登录后需要绑定手机号，一个手机号只能注册一个账号。")
+                Text("Apple 登录后需要绑定手机号，一个手机号只能注册一个账号。")
                     .font(.pf(.caption)).foregroundStyle(.secondary)
             }
             .padding(20)
@@ -272,15 +257,5 @@ struct CheckboxStyle: ToggleStyle {
             }
         }
         .buttonStyle(.plain)
-    }
-}
-
-/// 微信登录需要接入微信 OpenSDK（WechatOpenSDK），并在微信开放平台注册移动应用。
-/// 接入后在 start 里调用 WXApi.send(SendAuthReq)，在 onOpenURL 回调里拿到 code 交给 completion。
-enum WeChatLogin {
-    static func start(completion: @escaping (String) -> Void) {
-        Task { @MainActor in
-            AppModel.shared.toast = "微信登录还没接入微信开放平台，先用手机号登录"
-        }
     }
 }

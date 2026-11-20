@@ -38,6 +38,9 @@ targets:
         aps-environment: development
         com.apple.developer.associated-domains:
           - applinks:$(INVITE_HOST)
+        # 登录页的 Sign in with Apple 按钮：没有这一项，真机上点了会报授权失败
+        com.apple.developer.applesignin:
+          - Default
         com.apple.security.application-groups:
           - group.app.nightescort
         com.apple.developer.usernotifications.time-sensitive: true
